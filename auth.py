@@ -4,6 +4,7 @@ import base64
 import hmac
 import hashlib
 
+
 client = boto3.client("cognito-idp", region_name=REGION)
 db = boto3.resource("dynamodb", region_name=REGION)
 table = db.Table("authentication")
@@ -81,3 +82,33 @@ def generate_secret_hash(username, client_id, client_secret):
     dig = hmac.new(clientSecret, message, hashlib.sha256)
     
     return base64.b64encode(dig.digest()).decode()
+
+# login
+def login(username, password):
+    try:
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        response = client.initiate_auth(
+            ClientId=CLIENT_ID,
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password,
+                'SECRET_HASH': secret_hash
+            }
+        )
+
+        id_token = response["AuthenticationResult"]["IdToken"]
+        access_token = response["AuthenticationResult"]["AccessToken"]
+        refresh_token = response["AuthenticationResult"]["RefreshToken"]
+
+        return {
+            "message": "Login Successful",
+            "id_token": id_token,
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }
+    except Exception as error:
+        return {"error": str(error)}
+
+
+# logout
