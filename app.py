@@ -26,6 +26,17 @@ def confirm_signup():
         return jsonify(ret), 400
     else:
         return jsonify(ret), 200
+    
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    ret = auth.login(username, password)
+    if 'error' in ret:
+        return jsonify(ret), 400
+    else:
+        return jsonify(ret), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
