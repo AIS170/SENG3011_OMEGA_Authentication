@@ -1,0 +1,6 @@
+boto3
+moto[ec2,s3,all]
+pytest
+coverage
+flask
+python-dotenv
