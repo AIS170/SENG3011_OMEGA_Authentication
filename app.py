@@ -37,6 +37,17 @@ def login():
         return jsonify(ret), 400
     else:
         return jsonify(ret), 200
+    
+@app.route('/logout', methods=['POST'])
+def logout():
+    access_token = request.json.get('Access_Token')
+    if not access_token:
+        return jsonify({"error": "Invalid Access Token"}), 400
+    ret = auth.logout(access_token)
+    if 'error' in ret:
+        return jsonify(ret), 400
+    else:
+        return jsonify(ret), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

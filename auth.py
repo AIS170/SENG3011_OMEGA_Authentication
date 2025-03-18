@@ -112,3 +112,9 @@ def login(username, password):
 
 
 # logout
+def logout(access_token):
+    try:
+        client.global_sign_out(Access_Token=access_token)
+        return {"message": "Logout Successful!"}
+    except Exception as error:
+        return {"error": str(error)}
