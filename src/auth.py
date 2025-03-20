@@ -4,10 +4,10 @@ import base64
 import hmac
 import hashlib
 
-
 client = boto3.client("cognito-idp", region_name=REGION)
 db = boto3.resource("dynamodb", region_name=REGION)
 table = db.Table("authentication")
+
 
 def sign_up(username, email, password, name):
     try:
@@ -17,7 +17,11 @@ def sign_up(username, email, password, name):
             ClientId=CLIENT_ID,
             Username=username,
             Password=password,
-            UserAttributes=[{"Name": "email", "Value": email}, {"Name": "name", "Value": name}, {"Name": "preferred_username", "Value": username}],
+            UserAttributes=[
+                {"Name": "email", "Value": email},
+                {"Name": "name", "Value": name},
+                {"Name": "preferred_username", "Value": username}
+            ],
             SecretHash=secret_hash
         )
 
@@ -32,12 +36,15 @@ def sign_up(username, email, password, name):
         )
 
         return {
-            "message": "User registered successfully. Please check email for confirmation code",
+            "message": (
+                "User registered successfully. Please check email "
+                "for confirmation code"
+            ),
             "user_sub": ret["UserSub"]
         }
     except Exception as error:
         return {"error": str(error)}
-    
+
 
 def confirm_signup(username, conf_code):
     try:
@@ -62,28 +69,31 @@ def confirm_signup(username, conf_code):
         return {"message": "Confirmation successfull"}
     except Exception as error:
         return {"error": str(error)}
-    
+
 
 def get_user_sub(username):
     try:
-        response = table.scan(FilterExpression="username = :username", ExpressionAttributeValues={":username": username})
+        response = table.scan(
+            FilterExpression="username = :username",
+            ExpressionAttributeValues={":username": username}
+        )
         if 'Items' in response and len(response['Items']) > 0:
             return response['Items'][0].get('userID')
         else:
-            raise Exception(f"User not found")
-    
+            raise Exception("User not found")
+
     except Exception as e:
         raise Exception(f"error: {str(e)}")
-    
+
 
 def generate_secret_hash(username, client_id, client_secret):
     message = bytes(username + client_id, 'utf-8')
     clientSecret = bytes(client_secret, 'utf-8')
     dig = hmac.new(clientSecret, message, hashlib.sha256)
-    
+
     return base64.b64encode(dig.digest()).decode()
 
-# login
+
 def login(username, password):
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)

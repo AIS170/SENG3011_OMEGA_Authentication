@@ -4,3 +4,5 @@ pytest
 coverage
 flask
 python-dotenv
+flake8
+pytest-cov
