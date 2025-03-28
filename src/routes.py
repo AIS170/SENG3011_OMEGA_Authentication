@@ -3,6 +3,17 @@ import auth
 
 routes = Blueprint("routes", __name__)
 
+ERROR_CODE_DICT = {
+    "UsernameExistsException": 400,
+    "InvalidPasswordException": 400,
+    "UserNotFoundException": 404,
+    "UserNotConfirmedException": 403,
+    "NotAuthorizedException": 401,
+    "CodeMismatchException": 400,
+    "ExpiredCodeException": 400,
+    "MethodNotAllowed": 403,
+    "UnknownError": 500
+}
 
 @routes.route('/signup', methods=['POST'])
 def sign_up():
@@ -12,8 +23,10 @@ def sign_up():
     name = request.json.get('name')
 
     ret = auth.sign_up(username, email, password, name)
-    if 'error' in ret:
-        return jsonify(ret), 400
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
     else:
         return jsonify(ret), 200
 
@@ -24,8 +37,10 @@ def confirm_signup():
     conf_code = request.json.get('conf_code')
 
     ret = auth.confirm_signup(username, conf_code)
-    if 'error' in ret:
-        return jsonify(ret), 400
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
     else:
         return jsonify(ret), 200
 
@@ -36,8 +51,10 @@ def login():
     password = request.json.get('password')
 
     ret = auth.login(username, password)
-    if 'error' in ret:
-        return jsonify(ret), 400
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
     else:
         return jsonify(ret), 200
 
@@ -45,11 +62,38 @@ def login():
 @routes.route('/logout', methods=['POST'])
 def logout():
     access_token = request.json.get('AccessToken')
-    if not access_token:
-        return jsonify({"error": "Invalid Access Token"}), 400
     ret = auth.logout(access_token)
-    if 'error' in ret:
-        return jsonify(ret), 400
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+    
+
+@routes.route("/delete_user", methods=["DELETE"])
+def delete_user_route():
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    ret = auth.delete_user(username, password)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route("/admin/confirm_signup", methods=["POST"])
+def admin_confirm_signup():
+    username = request.json.get('username')
+
+    ret = auth.admin_confirm_signup(username)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
     else:
         return jsonify(ret), 200
 
