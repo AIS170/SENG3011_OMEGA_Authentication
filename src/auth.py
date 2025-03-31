@@ -1,18 +1,16 @@
 import os
 import boto3
-from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID
+from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, CLIENT_ROLE_ARN
 from constants import REGION
 import base64
 import hmac
 import hashlib
 from botocore.exceptions import ClientError
-from config import put_item_to_auth_table
 
 def get_cognito():
     return boto3.client("cognito-idp", region_name=REGION)
 
 def get_dynamo():
-    CLIENT_ROLE_ARN = "arn:aws:iam::149536468960:role/shareDynamoDB"
     sts_client = boto3.client('sts')
     assumed_role_object = sts_client.assume_role(
         RoleArn=CLIENT_ROLE_ARN,
@@ -36,6 +34,13 @@ def get_dynamo():
 
     return table
 
+
+def put_item_to_auth_table(item: dict):
+    table = get_dynamo()
+
+    # Write to the table
+    response = table.put_item(Item=item)
+    return response
 
 
 def get_error_message(error):
