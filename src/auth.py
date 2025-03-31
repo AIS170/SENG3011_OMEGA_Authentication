@@ -72,6 +72,7 @@ def sign_up(username, email, password, name):
             "user_sub": ret["UserSub"]
         }
     except Exception as error:
+        print(error)
         code, message = get_error_message(error)
         return {
             "error_code": code,
