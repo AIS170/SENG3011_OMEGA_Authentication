@@ -44,6 +44,8 @@ jobs:
         coverage report -m --fail-under=85
         coverage xml -o coverage.xml
         coverage html -d coverage_html_report
+    - name: Install JUnit2HTML
+      run: pip install junit2html
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       with:
@@ -79,14 +81,10 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y pandoc wkhtmltopdf
-    - name: Generate PDF test summary
+    - name: Generate Test Report PDF
       run: |
-        echo "# Test Report" > test-summary.md
-        echo "" >> test-summary.md
-        echo '```' >> test-summary.md
-        coverage report -m >> test-summary.md
-        echo '```' >> test-summary.md
-        pandoc test-summary.md -o test-summary.pdf --pdf-engine=wkhtmltopdf
+        junit2html test-results.xml test-report.html
+        wkhtmltopdf test-report.html test-report.pdf
     - name: Generate PDF coverage summary
       run: |
         echo "# Coverage Report" > coverage-summary.md
@@ -101,8 +99,9 @@ jobs:
         name: test-summary-pdf
         path: test-summary.pdf
 
-    - name: Upload Coverage Summary PDF
+    - name: Upload Test Report PDF
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-summary-pdf
-        path: coverage-summary.pdf
+        name: junit-test-report
+        path: test-report.pdf
+
