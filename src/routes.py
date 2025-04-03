@@ -6,8 +6,6 @@ if "src" in sys.modules:
 else:
     import auth
 
-from flask import Blueprint, request, jsonify
-
 routes = Blueprint("routes", __name__)
 
 ERROR_CODE_DICT = {
@@ -21,6 +19,7 @@ ERROR_CODE_DICT = {
     "MethodNotAllowed": 403,
     "UnknownError": 500
 }
+
 
 @routes.route('/signup', methods=['POST'])
 def sign_up():
@@ -76,7 +75,7 @@ def logout():
         return jsonify(ret), status
     else:
         return jsonify(ret), 200
-    
+
 
 @routes.route("/delete_user", methods=["DELETE"])
 def delete_user_route():

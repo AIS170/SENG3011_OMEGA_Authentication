@@ -6,6 +6,7 @@ import pytest
 from src.app import app
 from src.constants import REGION
 
+
 @pytest.fixture
 def client():
     with app.test_client() as client:
@@ -27,9 +28,14 @@ def mock_cognito():
         )
 
         client_id = pool_client_response["UserPoolClient"]["ClientId"]
-        client_secret = pool_client_response["UserPoolClient"].get("ClientSecret")
+        client_secret = pool_client_response["UserPoolClient"].get(
+            "ClientSecret"
+        )
 
-        with patch("src.auth.CLIENT_ID", client_id), patch("src.auth.CLIENT_SECRET", client_secret), patch("src.auth.POOL_ID", pool_id), patch("src.auth.get_cognito", return_value=client):
+        with patch("src.auth.CLIENT_ID", client_id), \
+             patch("src.auth.CLIENT_SECRET", client_secret), \
+             patch("src.auth.POOL_ID", pool_id), \
+             patch("src.auth.get_cognito", return_value=client):
             yield client
 
 
@@ -46,7 +52,10 @@ def mock_dynamo():
             AttributeDefinitions=[
                 {"AttributeName": "userID", "AttributeType": "S"}
             ],
-            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+            ProvisionedThroughput={
+                "ReadCapacityUnits": 5,
+                "WriteCapacityUnits": 5
+            },
         )
 
         table.wait_until_exists()

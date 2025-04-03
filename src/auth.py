@@ -7,8 +7,10 @@ import hmac
 import hashlib
 from botocore.exceptions import ClientError
 
+
 def get_cognito():
     return boto3.client("cognito-idp", region_name=REGION)
+
 
 def get_dynamo():
     db = boto3.resource("dynamodb", region_name=REGION)
@@ -23,14 +25,26 @@ def get_error_message(error):
             "UsernameExistsException": "The username is already in use.",
             "InvalidPasswordException": "Invalid password provided.",
             "UserNotFoundException": "The user could not be found.",
-            "NotAuthorizedException": "You are not authorised to complete this action.",
+            "NotAuthorizedException": (
+                "You are not authorised to complete this action."
+            ),
             "UserNotConfirmedException": "User is not confirmed",
-            "ExpiredCodeException": "The provided confirmation code has expired.",
-            "CodeMismatchException": "The provided confirmation code is incorrect."
+            "ExpiredCodeException": (
+                "The provided confirmation code has expired."
+            ),
+            "CodeMismatchException": (
+                "The provided confirmation code is incorrect."
+            )
         }
 
     if isinstance(error, ClientError):
-        return error.response['Error']['Code'], error_messages.get(error.response['Error']['Code'], "An unexpected error has occurred")
+        return (
+            error.response['Error']['Code'],
+            error_messages.get(
+                error.response['Error']['Code'],
+                "An unexpected error has occurred"
+            )
+        )
     else:
         return "UnknownError", "An unexpected error has occurred"
 
@@ -78,7 +92,6 @@ def sign_up(username, email, password, name):
             "error_code": code,
             "message": message
         }
-    
 
 
 def confirm_signup(username, conf_code):
@@ -121,7 +134,7 @@ def admin_confirm_signup(username):
             "error_code": "MethodNotAllowed",
             "message": "You are not authorised to perform this action."
         }
-    
+
     try:
         client.admin_confirm_sign_up(
             UserPoolId=POOL_ID,
@@ -182,7 +195,7 @@ def logout(access_token):
             "error_code": code,
             "message": message
         }
-    
+
 
 def delete_user(username, password):
     client = get_cognito()
@@ -208,7 +221,7 @@ def delete_user(username, password):
         table.delete_item(
             Key={'userID': get_user_sub(username)}
         )
-        
+
         return {"message": f"User {username} deleted successfully"}
     except Exception as error:
         code, message = get_error_message(error)
