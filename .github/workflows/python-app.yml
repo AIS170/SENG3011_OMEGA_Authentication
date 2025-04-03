@@ -38,5 +38,16 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run tests with coverage
       run: |
-        coverage run --source . --omit=src/app.py -m pytest
-        coverage report -m --fail-under=85
+        coverage run --source . --omit=src/app.py -m pytest --junitxml=test-results.xml
+        coverage report -m --fail-under=
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-report
+        path: test-results.xml
+    - name: Publish
+      uses: dorny/test-reporter@v1
+      with:
+        name: Pytest Results
+        path: test-results.xml
+        reporter: java-junit
