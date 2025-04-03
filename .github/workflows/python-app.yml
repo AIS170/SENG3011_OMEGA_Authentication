@@ -75,3 +75,23 @@ jobs:
         hide_complexity: true
         indicators: true
         output: both
+    - name: Install tools for PDF generation
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc wkhtmltopdf
+    - name: Generate PDF test summary
+      run: |
+        echo "# Test Report" > test-summary.md
+        echo "" >> test-summary.md
+        echo '```\n' >> test-summary.md
+        coverage report -m >> test-summary.md
+        echo '\n```' >> test-summary.md
+        pandoc test-summary.md -o test-summary.pdf
+    - name: Generate PDF coverage summary
+      run: |
+        echo "# Coverage Report" > coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo '```\n' >> coverage-summary.md
+        coverage report -m >> coverage-summary.md
+        echo '\n```' >> coverage-summary.md
+        pandoc coverage-summary.md -o coverage-summary.pdf
