@@ -73,5 +73,5 @@ jobs:
         fail_below_min: false
         format: markdown
         hide_complexity: true
-        indicators true
+        indicators: true
         output: both
