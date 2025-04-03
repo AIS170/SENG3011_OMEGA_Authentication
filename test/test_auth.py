@@ -201,7 +201,7 @@ def test_admin_confirm_signup_not_allowed(client, mock_cognito, mock_dynamo, mon
     assert response.json.get("message") == "You are not authorised to perform this action."
 
 
-def test_admin_confirm_signup_user_not_found(client, mock_cognito, mock_dynamo, monkeypatch):    
+def test_admin_confirm_signup_user_not_found(client, mock_cognito, mock_dynamo):    
     response = client.post("/admin/confirm_signup", data=json.dumps({"username": "jd101"}), content_type='application/json')
     print("Response Data:", response.get_json())
     assert response.status_code == 404

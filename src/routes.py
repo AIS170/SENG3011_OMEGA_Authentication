@@ -1,5 +1,12 @@
 from flask import Blueprint, request, jsonify
-import auth
+import sys
+
+if "src" in sys.modules:
+    from src import auth
+else:
+    import auth
+
+from flask import Blueprint, request, jsonify
 
 routes = Blueprint("routes", __name__)
 
