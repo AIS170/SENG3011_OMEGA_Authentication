@@ -18,8 +18,8 @@ def get_dynamo():
         RoleArn=CLIENT_ROLE_ARN,
         RoleSessionName="AssumeRoleSession1"
     )
-    credentials = assumed_role_object['Credentials']
 
+    credentials = assumed_role_object['Credentials']
     aws_access_key_id = credentials['AccessKeyId']
     aws_secret_access_key = credentials['SecretAccessKey']
 
@@ -29,6 +29,7 @@ def get_dynamo():
         aws_secret_access_key=aws_secret_access_key,
         region_name=REGION,
     )
+
     db = session.resource("dynamodb", region_name=REGION)
     table = db.Table(DB)
     table.load()

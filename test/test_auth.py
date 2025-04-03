@@ -1,7 +1,7 @@
 import json
 
 
-def test_signup(client, mock_cognito, mock_dynamo):
+def test_signup(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -24,7 +24,7 @@ def test_signup(client, mock_cognito, mock_dynamo):
     assert response.status_code == 200
 
 
-def test_login(client, mock_cognito, mock_dynamo):
+def test_login(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -54,7 +54,7 @@ def test_login(client, mock_cognito, mock_dynamo):
     assert response.status_code == 200
 
 
-def test_logout(client, mock_cognito, mock_dynamo):
+def test_logout(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -91,7 +91,7 @@ def test_logout(client, mock_cognito, mock_dynamo):
     assert response.status_code == 200
 
 
-def test_username_in_use(client, mock_cognito, mock_dynamo):
+def test_username_in_use(client, mock_cognito):
     data1 = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -129,7 +129,7 @@ def test_username_in_use(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'The username is already in use.'
 
 
-def test_bad_password(client, mock_cognito, mock_dynamo):
+def test_bad_password(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -146,7 +146,7 @@ def test_bad_password(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'Invalid password provided.'
 
 
-def test_user_not_exist(client, mock_cognito, mock_dynamo):
+def test_user_not_exist(client, mock_cognito):
     response = client.post(
         '/login',
         data=json.dumps({'username': 'jd101', 'password': 'goodPassword123!'}),
@@ -156,7 +156,7 @@ def test_user_not_exist(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'The user could not be found.'
 
 
-def test_incorrect_password(client, mock_cognito, mock_dynamo):
+def test_incorrect_password(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -189,7 +189,7 @@ def test_incorrect_password(client, mock_cognito, mock_dynamo):
     )
 
 
-def test_user_not_confirmed(client, mock_cognito, mock_dynamo):
+def test_user_not_confirmed(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -213,7 +213,7 @@ def test_user_not_confirmed(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'User is not confirmed'
 
 
-def test_logout_invalid_token(client, mock_cognito, mock_dynamo):
+def test_logout_invalid_token(client, mock_cognito):
     response = client.post(
         '/logout',
         data=json.dumps({'AccessToken': '123'}),
@@ -225,7 +225,7 @@ def test_logout_invalid_token(client, mock_cognito, mock_dynamo):
     )
 
 
-def test_delete_user(client, mock_cognito, mock_dynamo):
+def test_delete_user(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -263,7 +263,7 @@ def test_delete_user(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'The user could not be found.'
 
 
-def test_delete_non_existing_user(client, mock_cognito, mock_dynamo):
+def test_delete_non_existing_user(client, mock_cognito):
     response = client.delete(
         '/delete_user',
         data=json.dumps({'username': 'jd101', 'password': 'goodPassword123!'}),
@@ -273,7 +273,7 @@ def test_delete_non_existing_user(client, mock_cognito, mock_dynamo):
     assert response.json.get('message') == 'The user could not be found.'
 
 
-def test_delete_user_incorrect_password(client, mock_cognito, mock_dynamo):
+def test_delete_user_incorrect_password(client, mock_cognito):
     data = {
         'username': 'jd101',
         'email': 'john.doe@example.com',
@@ -311,12 +311,7 @@ def test_delete_user_incorrect_password(client, mock_cognito, mock_dynamo):
     )
 
 
-def test_admin_confirm_signup_not_allowed(
-    client,
-    mock_cognito,
-    mock_dynamo,
-    monkeypatch
-):
+def test_admin_confirm_signup_not_allowed(client, mock_cognito, monkeypatch):
     monkeypatch.setenv('TESTING', 'false')
 
     data = {
@@ -344,11 +339,7 @@ def test_admin_confirm_signup_not_allowed(
     )
 
 
-def test_admin_confirm_signup_user_not_found(
-    client,
-    mock_cognito,
-    mock_dynamo
-):
+def test_admin_confirm_signup_user_not_found(client, mock_cognito):
     response = client.post(
         '/admin/confirm_signup',
         data=json.dumps({'username': 'jd101'}),
@@ -358,18 +349,12 @@ def test_admin_confirm_signup_user_not_found(
     assert response.json.get('message') == 'The user could not be found.'
 
 
-def test_confirm_signup(client, mock_cognito, mock_dynamo, monkeypatch):
+def test_confirm_signup(client, mock_cognito, monkeypatch):
     def mock_confirmation(**kwargs):
         return {}
-
     monkeypatch.setattr(mock_cognito, 'confirm_sign_up', mock_confirmation)
-
-    mock_dynamo.put_item(
-        Item={'userID': 'test', 'username': 'jd101', 'status': 'UNCONFIRMED'}
-    )
 
     response = client.post(
         '/confirm_signup', json={'username': 'jd101', 'conf_code': '123456'}
     )
-
     assert response.status_code == 200
