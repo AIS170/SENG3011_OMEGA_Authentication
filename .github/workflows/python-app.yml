@@ -98,10 +98,6 @@ jobs:
       with:
         name: test-summary-pdf
         path: test-summary.pdf
-
-    - name: Upload Test Report PDF
-      uses: actions/upload-artifact@v4
-      with:
         name: junit-test-report
         path: test-report.pdf
 
