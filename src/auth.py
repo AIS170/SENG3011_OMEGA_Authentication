@@ -1,6 +1,6 @@
 import os
 import boto3
-from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID
+from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, CLIENT_ROLE_ARN
 from constants import REGION
 import base64
 import hmac
@@ -13,11 +13,35 @@ def get_cognito():
 
 
 def get_dynamo():
-    db = boto3.resource("dynamodb", region_name=REGION)
+    sts_client = boto3.client('sts')
+    assumed_role_object = sts_client.assume_role(
+        RoleArn=CLIENT_ROLE_ARN,
+        RoleSessionName="AssumeRoleSession1"
+    )
+    credentials = assumed_role_object['Credentials']
+
+    aws_access_key_id = credentials['AccessKeyId']
+    aws_secret_access_key = credentials['SecretAccessKey']
+
+    session = boto3.Session(
+        aws_session_token=credentials['SessionToken'],
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=REGION,
+    )
+    db = session.resource("dynamodb", region_name=REGION)
     table = db.Table(DB)
     table.load()
 
     return table
+
+
+def put_item_to_auth_table(item: dict):
+    table = get_dynamo()
+
+    # Write to the table
+    response = table.put_item(Item=item)
+    return response
 
 
 def get_error_message(error):
@@ -67,16 +91,16 @@ def sign_up(username, email, password, name):
             ],
             SecretHash=secret_hash
         )
+        item = {
+            "userID": ret["UserSub"],
+            "username": username,
+            "email": email,
+            "name": name,
+            "status": "UNCONFIRMED"
+        }
+        table.put_item(Item=item)
 
-        table.put_item(
-            Item={
-                "userID": ret["UserSub"],
-                "username": username,
-                "email": email,
-                "name": name,
-                "status": "UNCONFIRMED",
-            }
-        )
+        put_item_to_auth_table(item)
 
         return {
             "message": (

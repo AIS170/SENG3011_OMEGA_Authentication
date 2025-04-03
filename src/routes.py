@@ -7,6 +7,8 @@ else:
     import auth
 
 routes = Blueprint("routes", __name__)
+CLIENT_ROLE_ARN = "arn:aws:iam::149536468960:role/shareDynamoDB"
+CLIENT_DYNAMO_NAME = "authentication"
 
 ERROR_CODE_DICT = {
     "UsernameExistsException": 400,
@@ -19,6 +21,47 @@ ERROR_CODE_DICT = {
     "MethodNotAllowed": 403,
     "UnknownError": 500
 }
+
+
+# @routes.route('/test', methods=['POST'])
+# def test():
+#     sts_client = boto3.client('sts')
+
+#     # Step 1: Assume the role
+#     assumed_role_object = sts_client.assume_role(
+#         RoleArn='arn:aws:iam::149536468960:role/shareDynamoDB',
+#         RoleSessionName='AssumeRoleSession1'
+#     )
+
+#     credentials = assumed_role_object['Credentials']
+
+#     # Step 2: Create a session with the assumed role credentials
+#     assumed_session = boto3.Session(
+#         aws_access_key_id=credentials['AccessKeyId'],
+#         aws_secret_access_key=credentials['SecretAccessKey'],
+#         aws_session_token=credentials['SessionToken'],
+#         region_name=REGION
+#     )
+
+#     # Step 3: Create a DynamoDB **resource** (not client)
+#     dynamodb = assumed_session.resource('dynamodb')
+
+#     # Step 4: Get the table resource
+#     table = dynamodb.Table('authentication')
+
+#     # Step 5: Put the item into the table
+#     response = table.put_item(
+#         Item={
+#             "userID": "wowowoow11",
+#             "email": "test101@gmail.com",
+#             "name": "Test User",
+#             "status": "UNCONFIRMED",
+#             "username": "test02"
+#         }
+#     )
+
+#     print(response)
+#     return jsonify(response), 200
 
 
 @routes.route('/signup', methods=['POST'])
