@@ -58,7 +58,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: coverage-file-html
-        path: coverage.html
+        path: coverage_html_report/
     - name: Publish
       uses: dorny/test-reporter@v1
       with:
@@ -68,10 +68,10 @@ jobs:
     - name: Coverage Summary
       uses: irongut/CodeCoverageSummary@v1.3.0
       with:
-        filname: coverage.xml
+        fileame: coverage.xml
         badge: true
         fail_below_min: false
         format: markdown
         hide_complexity: true
-        indicator: true
+        indicators true
         output: both
