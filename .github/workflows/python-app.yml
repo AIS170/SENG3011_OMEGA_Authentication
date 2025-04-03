@@ -83,15 +83,26 @@ jobs:
       run: |
         echo "# Test Report" > test-summary.md
         echo "" >> test-summary.md
-        echo '```\n' >> test-summary.md
+        echo '```' >> test-summary.md
         coverage report -m >> test-summary.md
-        echo '\n```' >> test-summary.md
-        pandoc test-summary.md -o test-summary.pdf
+        echo '```' >> test-summary.md
+        pandoc test-summary.md -o test-summary.pdf --pdf-engine=wkhtmltopdf
     - name: Generate PDF coverage summary
       run: |
         echo "# Coverage Report" > coverage-summary.md
         echo "" >> coverage-summary.md
-        echo '```\n' >> coverage-summary.md
+        echo '```' >> coverage-summary.md
         coverage report -m >> coverage-summary.md
-        echo '\n```' >> coverage-summary.md
-        pandoc coverage-summary.md -o coverage-summary.pdf
+        echo '```' >> coverage-summary.md
+        pandoc coverage-summary.md -o coverage-summary.pdf --pdf-engine=wkhtmltopdf
+    - name: Upload Test Summary PDF
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-summary-pdf
+        path: test-summary.pdf
+
+    - name: Upload Coverage Summary PDF
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-summary-pdf
+        path: coverage-summary.pdf
