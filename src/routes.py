@@ -23,6 +23,9 @@ ERROR_CODE_DICT = {
     "InvalidEmail": 400
 }
 
+@routes.route('/home', methods=['GET'])
+def home():
+    return 'Hello world'
 
 @routes.route('/signup', methods=['POST'])
 def sign_up():
