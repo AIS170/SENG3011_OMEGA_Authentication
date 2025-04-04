@@ -17,7 +17,10 @@ ERROR_CODE_DICT = {
     "CodeMismatchException": 400,
     "ExpiredCodeException": 400,
     "MethodNotAllowed": 403,
-    "UnknownError": 500
+    "UnknownError": 500,
+    "BadInput": 400,
+    "InvalidCredentials": 401,
+    "InvalidEmail": 400
 }
 
 
@@ -67,7 +70,14 @@ def login():
 
 @routes.route('/logout', methods=['POST'])
 def logout():
-    access_token = request.json.get('AccessToken')
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 400
+    access_token = access_token[7:]
+
     ret = auth.logout(access_token)
     if 'error_code' in ret:
         error_code = ret['error_code']

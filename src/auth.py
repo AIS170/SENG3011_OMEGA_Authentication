@@ -6,6 +6,7 @@ import base64
 import hmac
 import hashlib
 from botocore.exceptions import ClientError
+from email_validator import validate_email, EmailNotValidError
 
 
 def get_cognito():
@@ -37,11 +38,46 @@ def get_dynamo():
     return table
 
 
-def put_item_to_auth_table(item: dict):
+def put_item_to_DB(item: dict):
     table = get_dynamo()
 
-    # Write to the table
     response = table.put_item(Item=item)
+    return response
+
+
+def get_item_from_DB(username):
+    table = get_dynamo()
+
+    response = table.scan(
+        FilterExpression="username = :username",
+        ExpressionAttributeValues={":username": username}
+    )
+    if 'Items' in response and len(response['Items']) > 0:
+        return response['Items'][0]
+    else:
+        return None
+
+
+def update_item_status(username, status):
+    table = get_dynamo()
+
+    response = table.update_item(
+        Key={"userID": get_user_sub(username)},
+        UpdateExpression="SET #status = :status",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status": status}
+    )
+
+    return response
+
+
+def delete_item_from_DB(username):
+    table = get_dynamo()
+
+    response = table.delete_item(
+        Key={'userID': get_user_sub(username)}
+    )
+
     return response
 
 
@@ -76,9 +112,16 @@ def get_error_message(error):
 
 def sign_up(username, email, password, name):
     client = get_cognito()
-    table = get_dynamo()
+
+    if not all([username, email, password, name]):
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username, email, password, name)"
+        }
 
     try:
+        validate_email(email)
+
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
 
         ret = client.sign_up(
@@ -99,9 +142,7 @@ def sign_up(username, email, password, name):
             "name": name,
             "status": "UNCONFIRMED"
         }
-        table.put_item(Item=item)
-
-        put_item_to_auth_table(item)
+        put_item_to_DB(item)
 
         return {
             "message": (
@@ -110,8 +151,12 @@ def sign_up(username, email, password, name):
             ),
             "user_sub": ret["UserSub"]
         }
+    except EmailNotValidError as error:
+        return {
+            "error_code": "InvalidEmail",
+            "message": "The provided email is in an invalid format"
+        }
     except Exception as error:
-        print(error)
         code, message = get_error_message(error)
         return {
             "error_code": code,
@@ -121,7 +166,12 @@ def sign_up(username, email, password, name):
 
 def confirm_signup(username, conf_code):
     client = get_cognito()
-    table = get_dynamo()
+
+    if not all([username, conf_code]):
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username, conf_code)"
+        }
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
@@ -133,14 +183,7 @@ def confirm_signup(username, conf_code):
             SecretHash=secret_hash
         )
 
-        userSub = get_user_sub(username)
-
-        table.update_item(
-            Key={"userID": userSub},
-            UpdateExpression="SET #status = :status",
-            ExpressionAttributeNames={"#status": "status"},
-            ExpressionAttributeValues={":status": "CONFIRMED"}
-        )
+        update_item_status(username, "CONFIRMED")
 
         return {"message": "Confirmation successfull"}
     except Exception as error:
@@ -154,6 +197,12 @@ def confirm_signup(username, conf_code):
 def admin_confirm_signup(username):
     client = get_cognito()
 
+    if not username:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username)"
+        }
+
     if os.getenv('TESTING') == 'false':
         return {
             "error_code": "MethodNotAllowed",
@@ -165,6 +214,9 @@ def admin_confirm_signup(username):
             UserPoolId=POOL_ID,
             Username=username
         )
+
+        update_item_status(username, "CONFIRMED")
+
         return {"message": "Confirmation successfull"}
     except Exception as error:
         code, message = get_error_message(error)
@@ -176,6 +228,12 @@ def admin_confirm_signup(username):
 
 def login(username, password):
     client = get_cognito()
+
+    if not all([username, password]):
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username, password)"
+        }
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
@@ -198,6 +256,11 @@ def login(username, password):
             "id_token": id_token,
             "access_token": access_token,
             "refresh_token": refresh_token
+        }
+    except client.exceptions.NotAuthorizedException:
+        return {
+            "error_code": "InvalidCredentials",
+            "message": "The username or password is incorrect."
         }
     except Exception as error:
         code, message = get_error_message(error)
@@ -224,7 +287,12 @@ def logout(access_token):
 
 def delete_user(username, password):
     client = get_cognito()
-    table = get_dynamo()
+
+    if not all([username, password]):
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username, password)"
+        }
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
@@ -243,11 +311,14 @@ def delete_user(username, password):
             Username=username
         )
 
-        table.delete_item(
-            Key={'userID': get_user_sub(username)}
-        )
+        delete_item_from_DB(username)
 
         return {"message": f"User {username} deleted successfully"}
+    except client.exceptions.NotAuthorizedException:
+        return {
+            "error_code": "InvalidCredentials",
+            "message": "The password is incorrect."
+        }
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -257,14 +328,10 @@ def delete_user(username, password):
 
 
 def get_user_sub(username):
-    table = get_dynamo()
+    response = get_item_from_DB(username)
 
-    response = table.scan(
-        FilterExpression="username = :username",
-        ExpressionAttributeValues={":username": username}
-    )
-    if 'Items' in response and len(response['Items']) > 0:
-        return response['Items'][0].get('userID')
+    if response:
+        return response.get('userID')
     else:
         return None
 
