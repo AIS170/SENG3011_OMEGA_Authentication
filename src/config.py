@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'local')
 
 if ENVIRONMENT == 'testing':
-    load_dotenv(dotenv_path='.env.test')
+    # load_dotenv(dotenv_path='.env.test')
 
     POOL_ID = "test-id"
     CLIENT_ID = "test-id"
