@@ -22,6 +22,7 @@ jobs:
       ENVIRONMENT: pipeline
       AWS_ACCESS_KEY_ID: ${{ secrets.AAKASH_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AAKASH_SECRET_ACCESS_KEY }}
+      CLIENT_ROLE_ARN: ${{ secrets.CLIENT_ROLE_ARN_1 }}:${{ secrets.CLIENT_ROLE_ARN_2 }}:${{ secrets.CLIENT_ROLE_ARN_3 }}::${{ secrets.CLIENT_ROLE_ARN_4 }}:${{ secrets.CLIENT_ROLE_ARN_5 }}
 
     steps:
     - uses: actions/checkout@v3
