@@ -2,6 +2,8 @@ import json
 
 from src.auth import get_item_from_DB
 
+
+# Confirms that the user is correclty added to the database upon signup
 def test_verify_signup(client, mock_cognito, user_data_1, clear_dynamo):
     client.post(
         '/signup', data=json.dumps(user_data_1),
@@ -16,6 +18,8 @@ def test_verify_signup(client, mock_cognito, user_data_1, clear_dynamo):
     assert item['status'] == 'UNCONFIRMED'
 
 
+# Confirms that the user has 'CONFIRMED' status in the database after sign up 
+# confirmation
 def test_verify_confirm_signup(client, mock_cognito, user_data_1, clear_dynamo):
     client.post(
         '/signup', data=json.dumps(user_data_1),
@@ -36,6 +40,8 @@ def test_verify_confirm_signup(client, mock_cognito, user_data_1, clear_dynamo):
     assert item['status'] == 'CONFIRMED'
 
 
+# Confirms that a user is successfully deleted from the database after delete 
+# route is called
 def test_verify_user_delete(client, mock_cognito, user_data_1, clear_dynamo):
     ret = client.post(
         '/signup', data=json.dumps(user_data_1),
@@ -68,6 +74,8 @@ def test_verify_user_delete(client, mock_cognito, user_data_1, clear_dynamo):
 
     assert item is None
 
+
+# Confirms that corrupted data isn't added to the database after failed signup
 def test_signup_no_corruption(client, mock_cognito, user_data_1, clear_dynamo):
     data = {
         'email': 'john.doe@example.com',
@@ -85,6 +93,8 @@ def test_signup_no_corruption(client, mock_cognito, user_data_1, clear_dynamo):
     assert item is None
 
 
+# Confirms that corrupted data isn't added to the database after failed confirm
+# signup 
 def test_confirm_signup_no_corruption(client, mock_cognito, user_data_1, clear_dynamo):
     ret = client.post(
         '/signup', data=json.dumps(user_data_1),
