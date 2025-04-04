@@ -115,13 +115,17 @@ def test_admin_confirm_signup_user_not_found(
 
 
 # Test for successfull confirm signup with mocked cognito response.
-# Cognito response is mocked as there is no way to retrieve the confirmation 
+# Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
 def test_confirm_signup(mock_cognito, clear_dynamo, monkeypatch):
     def mock_confirmation(**kwargs):
         return {}
 
-    monkeypatch.setattr(mock_cognito['client'], 'confirm_sign_up', mock_confirmation)
+    monkeypatch.setattr(
+        mock_cognito['client'],
+        'confirm_sign_up',
+        mock_confirmation
+    )
 
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
@@ -203,6 +207,7 @@ def test_logout(mock_cognito, clear_dynamo):
 
     assert ret['message'] == 'Logout Successful!'
 
+
 # Test for error upon logging out with invalid token
 def test_logout_invalid_token(mock_cognito, clear_dynamo):
     ret = logout('123')
@@ -254,7 +259,7 @@ def test_delete_user_incorrect_password(mock_cognito, clear_dynamo):
 
 
 # Test for error upon deleting unconfirmed user
-def test_delete_user_incorrect_password(mock_cognito, clear_dynamo):
+def test_delete_unconfirmed_user(mock_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = delete_user('jd101', 'incorrectPassword123!')

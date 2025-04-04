@@ -1,6 +1,5 @@
 from unittest.mock import patch
 import boto3
-from moto import mock_aws
 import pytest
 
 from src.config import DB
@@ -44,7 +43,7 @@ def mock_cognito():
             "client": client,
             "user_pool_id": pool_id,
         }
-    
+
     client.delete_user_pool(UserPoolId=pool_id)
 
 
@@ -62,18 +61,14 @@ def clear_dynamo():
 
 @pytest.fixture(autouse=True)
 def clean_user_pool(mock_cognito):
-    yield  # let the test run
-
+    yield
     client = mock_cognito["client"]
-    user_pool_id = mock_cognito["user_pool_id"]
+    pool_id = mock_cognito["user_pool_id"]
 
-    # List and delete all users
-    response = client.list_users(UserPoolId=user_pool_id)
+    response = client.list_users(UserPoolId=pool_id)
+
     for user in response.get("Users", []):
-        client.admin_delete_user(
-            UserPoolId=user_pool_id,
-            Username=user["Username"]
-        )
+        client.admin_delete_user(UserPoolId=pool_id, Username=user["Username"])
 
 
 @pytest.fixture
@@ -84,6 +79,7 @@ def user_data_1():
         'password': 'goodPassword123!',
         'name': 'John Doe'
     }
+
 
 @pytest.fixture
 def user_data_2():

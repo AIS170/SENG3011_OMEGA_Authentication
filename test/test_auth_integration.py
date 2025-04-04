@@ -18,9 +18,14 @@ def test_verify_signup(client, mock_cognito, user_data_1, clear_dynamo):
     assert item['status'] == 'UNCONFIRMED'
 
 
-# Confirms that the user has 'CONFIRMED' status in the database after sign up 
+# Confirms that the user has 'CONFIRMED' status in the database after sign up
 # confirmation
-def test_verify_confirm_signup(client, mock_cognito, user_data_1, clear_dynamo):
+def test_verify_confirm_signup(
+    client,
+    mock_cognito,
+    user_data_1,
+    clear_dynamo
+):
     client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'
@@ -40,7 +45,7 @@ def test_verify_confirm_signup(client, mock_cognito, user_data_1, clear_dynamo):
     assert item['status'] == 'CONFIRMED'
 
 
-# Confirms that a user is successfully deleted from the database after delete 
+# Confirms that a user is successfully deleted from the database after delete
 # route is called
 def test_verify_user_delete(client, mock_cognito, user_data_1, clear_dynamo):
     ret = client.post(
@@ -65,7 +70,12 @@ def test_verify_user_delete(client, mock_cognito, user_data_1, clear_dynamo):
 
     ret = client.delete(
         '/delete_user',
-        data=json.dumps({'username': user_data_1['username'], 'password': user_data_1['password']}),
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
         content_type='application/json'
     )
     assert ret.status_code == 200
@@ -94,8 +104,13 @@ def test_signup_no_corruption(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Confirms that corrupted data isn't added to the database after failed confirm
-# signup 
-def test_confirm_signup_no_corruption(client, mock_cognito, user_data_1, clear_dynamo):
+# signup
+def test_confirm_signup_no_corruption(
+    client,
+    mock_cognito,
+    user_data_1,
+    clear_dynamo
+):
     ret = client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'

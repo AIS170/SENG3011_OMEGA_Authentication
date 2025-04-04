@@ -116,7 +116,9 @@ def sign_up(username, email, password, name):
     if not all([username, email, password, name]):
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username, email, password, name)"
+            "message": (
+                "All fields must be provided (username, email, password, name)"
+            )
         }
 
     try:
@@ -151,7 +153,7 @@ def sign_up(username, email, password, name):
             ),
             "user_sub": ret["UserSub"]
         }
-    except EmailNotValidError as error:
+    except EmailNotValidError:
         return {
             "error_code": "InvalidEmail",
             "message": "The provided email is in an invalid format"
