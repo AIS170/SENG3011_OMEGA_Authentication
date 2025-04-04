@@ -3,3 +3,5 @@ __pycache__/
 .env
 .coverage
 htmlcov/
+.env.test
+.env.local
