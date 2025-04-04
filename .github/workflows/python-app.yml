@@ -19,6 +19,7 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
+      ENVIRONMENT: pipeline
       AWS_ACCESS_KEY_ID: ${{ secrets.AAKASH_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AAKASH_SECRET_ACCESS_KEY }}
 
