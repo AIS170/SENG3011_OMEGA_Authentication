@@ -23,7 +23,8 @@ elif ENVIRONMENT == 'pipeline':
     POOL_ID = "test-id"
     CLIENT_ID = "test-id"
     CLIENT_SECRET = "test-secret"
-    DB = os.getenv("DYNAMODB_TABLE")
+    # DB = os.getenv("DYNAMODB_TABLE") <-- This is how it should be done
+    DB = "test-authentication"
     CLIENT_ROLE_ARN = os.getenv("CLIENT_ROLE_ARN")
 elif ENVIRONMENT == 'production':
     pass
