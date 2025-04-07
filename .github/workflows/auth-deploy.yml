@@ -34,10 +34,8 @@ jobs:
         id: deploy-ecs
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: .
+          task-definition: task_definition.json
           service: authService
           cluster: AuthCluster
           container-name: authContainer
           image: ${{ steps.build-image.outputs.image }}
-
-          # 
