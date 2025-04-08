@@ -1,6 +1,6 @@
 import os
 import boto3
-from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, CLIENT_ROLE_ARN
+from config import DB, POOL_ID, CLIENT_ROLE_ARN
 from constants import REGION
 import base64
 import hmac
@@ -112,6 +112,8 @@ def get_error_message(error):
 
 def sign_up(username, email, password, name):
     client = get_cognito()
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
 
     if not all([username, email, password, name]):
         return {
@@ -121,7 +123,7 @@ def sign_up(username, email, password, name):
             )
         }
     
-    if not CLIENT_ID or not CLIENT_SECRET:
+    if not client_id or not client_secret:
         return {
             "error_code": "MissingSecrets",
             "message": "CLIENT_ID or CLIENT_SECRET is not set"
@@ -130,10 +132,10 @@ def sign_up(username, email, password, name):
     try:
         validate_email(email)
 
-        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        secret_hash = generate_secret_hash(username, client_id, client_secret)
 
         ret = client.sign_up(
-            ClientId=CLIENT_ID,
+            ClientId=client_id,
             Username=username,
             Password=password,
             UserAttributes=[
@@ -174,6 +176,8 @@ def sign_up(username, email, password, name):
 
 def confirm_signup(username, conf_code):
     client = get_cognito()
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
 
     if not all([username, conf_code]):
         return {
@@ -182,10 +186,10 @@ def confirm_signup(username, conf_code):
         }
 
     try:
-        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        secret_hash = generate_secret_hash(username, client_id, client_secret)
 
         client.confirm_sign_up(
-            ClientId=CLIENT_ID,
+            ClientId=client_id,
             Username=username,
             ConfirmationCode=conf_code,
             SecretHash=secret_hash
@@ -236,6 +240,8 @@ def admin_confirm_signup(username):
 
 def login(username, password):
     client = get_cognito()
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
 
     if not all([username, password]):
         return {
@@ -244,9 +250,9 @@ def login(username, password):
         }
 
     try:
-        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        secret_hash = generate_secret_hash(username, client_id, client_secret)
         response = client.initiate_auth(
-            ClientId=CLIENT_ID,
+            ClientId=client_id,
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={
                 'USERNAME': username,
@@ -295,6 +301,8 @@ def logout(access_token):
 
 def delete_user(username, password):
     client = get_cognito()
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
 
     if not all([username, password]):
         return {
@@ -303,9 +311,9 @@ def delete_user(username, password):
         }
 
     try:
-        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        secret_hash = generate_secret_hash(username, client_id, client_secret)
         client.initiate_auth(
-            ClientId=CLIENT_ID,
+            ClientId=client_id,
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={
                 "USERNAME": username,
