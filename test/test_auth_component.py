@@ -69,7 +69,11 @@ def test_username_in_use(
         content_type='application/json'
     )
     assert response.status_code == 400
-    assert response.json.get('message') == 'The username is already in use.'
+    assert response.json.get('message') == (
+        'The username is already in use.An error occurred '
+        '(UsernameExistsException) when calling the SignUp operation: '
+        'User already exists'
+    )
 
 
 # Test for error upon signup with a badly formatted password
@@ -87,7 +91,12 @@ def test_bad_password(client, mock_cognito, clear_dynamo):
         content_type='application/json'
     )
     assert response.status_code == 400
-    assert response.json.get('message') == 'Invalid password provided.'
+    assert response.json.get('message') == (
+        'Invalid password provided.An error occurred '
+        '(InvalidPasswordException) when calling the SignUp operation: '
+        'Password did not conform with policy: Password must have uppercase '
+        'characters'
+    )
 
 
 # Test for error upon signup with a badly formatted email
