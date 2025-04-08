@@ -120,6 +120,12 @@ def sign_up(username, email, password, name):
                 "All fields must be provided (username, email, password, name)"
             )
         }
+    
+    if not CLIENT_ID or not CLIENT_SECRET:
+        return {
+            "error_code": "MissingSecrets",
+            "message": "CLIENT_ID or CLIENT_SECRET is not set"
+        }
 
     try:
         validate_email(email)
