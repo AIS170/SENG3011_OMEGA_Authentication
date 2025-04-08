@@ -162,7 +162,7 @@ def sign_up(username, email, password, name):
         code, message = get_error_message(error)
         return {
             "error_code": code,
-            "message": message
+            "message": message + str(error)
         }
 
 
