@@ -41,7 +41,11 @@ def test_username_in_use(mock_cognito, clear_dynamo):
 
     assert 'error_code' in ret
     assert ret['error_code'] == 'UsernameExistsException'
-    assert ret['message'] == 'The username is already in use.'
+    assert ret['message'] == (
+        'The username is already in use.An error occurred '
+        '(UsernameExistsException) when calling the SignUp operation: '
+        'User already exists'
+    )
 
 
 # Test for error upon signup with a badly formatted password
@@ -55,7 +59,12 @@ def test_bad_password(mock_cognito, clear_dynamo):
 
     assert 'error_code' in ret
     assert ret['error_code'] == 'InvalidPasswordException'
-    assert ret['message'] == 'Invalid password provided.'
+    assert ret['message'] == (
+        'Invalid password provided.An error occurred '
+        '(InvalidPasswordException) when calling the SignUp operation: '
+        'Password did not conform with policy: Password must have uppercase '
+        'characters'
+    )
 
 
 # Test for error upon signup with a badly formatted email
