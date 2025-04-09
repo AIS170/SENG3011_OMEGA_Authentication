@@ -1,5 +1,5 @@
 {
-    "family": "AuthTask",
+    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-2:911167894691:task-definition/AuthTask:9",
     "containerDefinitions": [
         {
             "name": "authContainer",
@@ -15,11 +15,34 @@
                 }
             ],
             "essential": true,
-            "environment": [],
-            "environmentFiles": [],
+            "environment": [
+                {
+                    "name": "COGNITO_POOL_ID",
+                    "value": "ap-southeast-2_lC7QMwanL"
+                },
+                {
+                    "name": "DYNAMODB_TABLE",
+                    "value": "authentication"
+                },
+                {
+                    "name": "COGNITO_CLIENT_ID",
+                    "value": "19lpbh154asnjsg343vp2tf4m9"
+                },
+                {
+                    "name": "COGNITO_CLIENT_SECRET",
+                    "value": "14dr0iim63oj79db5oic1hhqbe1gt6o5ffr139f0er4p6u9sf80l"
+                },
+                {
+                    "name": "CLIENT_ROLE_ARN",
+                    "value": "arn:aws:iam::149536468960:role/shareDynamoDB"
+                },
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "production"
+                }
+            ],
             "mountPoints": [],
             "volumesFrom": [],
-            "ulimits": [],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -35,11 +58,50 @@
             "systemControls": []
         }
     ],
+    "family": "AuthTask",
     "taskRoleArn": "arn:aws:iam::911167894691:role/DynamoDeployRole",
     "executionRoleArn": "arn:aws:iam::911167894691:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
+    "revision": 9,
     "volumes": [],
+    "status": "ACTIVE",
+    "requiresAttributes": [
+        {
+            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+        },
+        {
+            "name": "ecs.capability.execution-role-awslogs"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.ecr-auth"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.28"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.task-iam-role"
+        },
+        {
+            "name": "ecs.capability.execution-role-ecr-pull"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+        },
+        {
+            "name": "ecs.capability.task-eni"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+        }
+    ],
     "placementConstraints": [],
+    "compatibilities": [
+        "EC2",
+        "FARGATE"
+    ],
     "requiresCompatibilities": [
         "FARGATE"
     ],
@@ -48,5 +110,8 @@
     "runtimePlatform": {
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
-    }
+    },
+    "registeredAt": "2025-04-09T08:49:20.802Z",
+    "registeredBy": "arn:aws:iam::911167894691:root",
+    "tags": []
 }
