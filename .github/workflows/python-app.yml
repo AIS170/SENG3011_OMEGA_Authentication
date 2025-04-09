@@ -42,6 +42,12 @@ jobs:
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Run tests with coverage
+      run: |
+        coverage run --source . --omit=src/app.py -m pytest --junitxml=test-results.xml
+        coverage report -m --fail-under=85
+        coverage xml -o coverage.xml
+        coverage html -d coverage_html_report
     - name: Install JUnit2HTML
       run: pip install junit2html
     - name: Upload Test Results
