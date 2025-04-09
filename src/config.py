@@ -26,5 +26,9 @@ elif ENVIRONMENT == 'pipeline':
     DB = os.getenv("DYNAMODB_TABLE")
     CLIENT_ROLE_ARN = os.getenv("CLIENT_ROLE_ARN")
 elif ENVIRONMENT == 'production':
-    pass
+    POOL_ID = os.getenv("COGNITO_POOL_ID")
+    CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
+    CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
+    DB = os.getenv("DYNAMODB_TABLE")
+    CLIENT_ROLE_ARN = os.getenv("CLIENT_ROLE_ARN")
     # Insert code to retrieve sensitive values from AWS ECS Secrets Manager
