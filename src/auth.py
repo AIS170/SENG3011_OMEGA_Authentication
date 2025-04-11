@@ -1,5 +1,7 @@
+import json
 import os
 import boto3
+import requests
 from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, CLIENT_ROLE_ARN
 from constants import REGION
 import base64
@@ -192,6 +194,12 @@ def confirm_signup(username, conf_code):
         )
 
         update_item_status(username, "CONFIRMED")
+
+        requests.post(
+            'http://retrieval-load-balancer-334368182.ap-southeast-2.elb.amazonaws.com/v1/register/',
+            data=json.dumps({'username': username}),
+            headers={'Content-Type': 'application/json'}
+        )
 
         return {"message": "Confirmation successfull"}
     except Exception as error:
