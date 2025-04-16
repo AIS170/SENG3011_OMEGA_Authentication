@@ -205,5 +205,24 @@ def update_password():
         return jsonify(ret), 200
 
 
+@routes.route('/user_info', methods=['GET'])
+def user_info():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 401
+    access_token = access_token[7:]
+
+    ret = auth.user_info(access_token)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
 def register_routes(app):
     app.register_blueprint(routes)

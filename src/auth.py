@@ -572,6 +572,30 @@ def update_password(access_token, old_password, new_password):
         }
 
 
+def user_info(access_token):
+    try:
+        client = get_cognito()
+        user_info = client.get_user(AccessToken=access_token)
+
+        properties = {}
+        for attribute in user_info["UserAttributes"]:
+            properties[attribute["Name"]] = attribute["Value"]
+
+        return {
+            "message": "User info retrieved successfully",
+            "name": properties.get("name"),
+            "username": user_info['Username'],
+            "email": properties.get("email")
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+
 def get_user_sub(username):
     response = get_item_from_DB(username)
 
