@@ -969,9 +969,8 @@ def test_resend_confirmation_code_invalid_user(
     assert response.json.get('message') == 'The user could not be found.'
 
 
-# Test error when resending confirmation code for an already confirmed and
-# email verified user
-def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
+# Test error when resending confirmation code for an already confirmed user
+def test_resend_confirmation_code_for_confirmed_user(
     client,
     user_data_1,
     test_cognito,
@@ -1003,56 +1002,170 @@ def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
     )
 
 
-# # Test success when resending confirmation code for an already confirmed but
-# # not email verified user
-# def test_resend_confirmation_code_for_non_email_verified_user(
-#     client,
-#     user_data_1,
-#     test_cognito_with_autoverify,
-#     clear_dynamo
-# ):
-#     response = client.post(
-#         '/signup',
-#         data=json.dumps(user_data_1),
-#         content_type='application/json'
-#     )
-#     assert response.status_code == 200
+# =========================================================================== #
+# UPDATE EMAIL TESTS                                                          #
+# =========================================================================== #
+
+# Test for successful email update
+def test_update_email(user_data_1, client, test_cognito, clear_dynamo):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
     
-#     response = client.post(
-#         '/admin/confirm_signup',
-#         data=json.dumps({'username': user_data_1['username']}),
-#         content_type='application/json'
-#     )
-#     assert response.status_code == 200
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
 
-#     response = client.post(
-#         '/login',
-#         data=json.dumps(
-#             {
-#                 'username': user_data_1['username'],
-#                 'password': user_data_1['password']
-#             }
-#         ),
-#         content_type='application/json'
-#     )
-#     assert response.status_code == 200
-#     token = response.get_json().get('access_token')
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
 
-#     response = client.put(
-#         '/update_email',
-#         headers={'Authorization': f'Bearer {token}'},
-#         data=json.dumps({'new_email': 'john.doe101@gmail.com'}),
-#         content_type='application/json'
-#     )
-#     assert response.status_code == 200
+    response = client.put(
+        '/update_email',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({'new_email': 'john.doe101@gmail.com'}),
+        content_type='application/json'
+    )
 
-#     response = client.post(
-#         '/resend_confirmation_code',
-#         data=json.dumps({'username': user_data_1['username']}),
-#         content_type='application/json'
-#     )
+    assert response.status_code == 200
+    assert response.json.get('message') == 'Email successfully updated.'
 
-#     assert response.status_code == 200
-#     assert response.json.get('message') == (
-#         'A new confirmation code has been sent to your email'
-#     )
+
+# Test for error when email is updated with bad input
+def test_update_email_bad_inputs(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_email',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({'new_email': None}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'All fields must be provided (new_email)'
+    )
+
+
+# Test for error when email is updated with invalid token
+def test_update_email_invalid_token(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.put(
+        '/update_email',
+        headers={'Authorization': 'Bearer 12345'},
+        data=json.dumps({'new_email': 'john.doe101@gmail.com'}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == (
+        'You are not authorised to complete this action.'
+    )
+
+
+# Test for error when email is updated with invalid email
+def test_update_email_invalid_email(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_email',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({'new_email': 'john.doe101.gmail.com'}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'The provided email is in an invalid format'
+    )

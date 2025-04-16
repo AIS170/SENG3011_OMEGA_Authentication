@@ -8,7 +8,8 @@ from src.auth import (
     generate_secret_hash,
     forgot_password,
     confirm_forgot_password,
-    resend_confirmation_code
+    resend_confirmation_code,
+    update_email
 )
 
 
@@ -165,7 +166,6 @@ def test_login(test_cognito, clear_dynamo):
     admin_confirm_signup('jd101')
 
     ret = login('jd101', 'goodPassword123!')
-    print(ret)
 
     assert ret['message'] == 'Login Successful'
     assert 'id_token' in ret
@@ -389,9 +389,8 @@ def test_resend_confirmation_code_invalid_user(test_cognito, clear_dynamo):
     assert ret['message'] == 'The user could not be found.'
 
 
-# Test error when resending confirmation code for an already confirmed and
-# email verified user
-def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
+# Test error when resending confirmation code for an already confirmed user
+def test_resend_confirmation_code_for_confirmed_user(
     test_cognito,
     clear_dynamo
 ):
@@ -405,22 +404,44 @@ def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
     assert ret['message'] == 'User has already confirmed their email.'
 
 
-# # Test success when resending confirmation code for an already confirmed but
-# # not email verified user
-# def test_resend_confirmation_code_for_non_email_verified_user(
-#     test_cognito,
-#     clear_dynamo
-# ):
-#     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
-#     admin_confirm_signup('jd101')
-#     access_token = login('jd101', 'goodPassword123!')['access_token']
-#     update_email(access_token, 'john.doe101@gmail.com')
+# =========================================================================== #
+# UPDATE EMAIL TESTS                                                          #
+# =========================================================================== #
 
-#     ret = resend_confirmation_code('jd101')
-    
-#     assert ret['message'] == (
-#         'A new confirmation code has been sent to your email'
-#     )
+# Test for successful email update
+def test_update_email(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = update_email(access_token, 'john.doe101@gmail.com')
+
+    assert ret['message'] == ('Email successfully updated.')
+
+
+# Test for error when email is updated with invalid token
+def test_update_email_invalid_token(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+
+    ret = update_email('12345', 'john.doe101@gmail.com')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NotAuthorizedException'
+    assert ret['message'] == 'You are not authorised to complete this action.'
+
+
+# Test for error when email is updated with invalid email
+def test_update_email_invalid_email(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = update_email(access_token, 'john.doe101.gmail.com')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'InvalidEmail'
+    assert ret['message'] == 'The provided email is in an invalid format'
 
 
 # =========================================================================== #
