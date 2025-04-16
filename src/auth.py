@@ -122,7 +122,7 @@ def sign_up(username, email, password, name):
                 "All fields must be provided (username, email, password, name)"
             )
         }
-    
+
     if not CLIENT_ID or not CLIENT_SECRET:
         return {
             "error_code": "MissingSecrets",
@@ -208,8 +208,13 @@ def confirm_signup(username, conf_code):
 
         update_item_status(username, "CONFIRMED")
 
+        url = (
+            "http://retrieval-load-balancer-334368182.ap-southeast-2.elb"
+            ".amazonaws.com/v1/register/"
+        )
+
         requests.post(
-            'http://retrieval-load-balancer-334368182.ap-southeast-2.elb.amazonaws.com/v1/register/',
+            url,
             data=json.dumps({'username': username}),
             headers={'Content-Type': 'application/json'}
         )
@@ -427,7 +432,7 @@ def confirm_forgot_password(username, conf_code, new_password):
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
-        response = client.confirm_forgot_password(
+        client.confirm_forgot_password(
             ClientId=CLIENT_ID,
             SecretHash=secret_hash,
             Username=username,
@@ -491,7 +496,7 @@ def update_email(access_token, new_email):
             "error_code": "BadInput",
             "message": "All fields must be provided (new_email)"
         }
-    
+
     try:
         client = get_cognito()
         username = client.get_user(AccessToken=access_token)['Username']
@@ -545,6 +550,16 @@ def update_password(access_token, old_password, new_password):
     try:
         client = get_cognito()
         username = client.get_user(AccessToken=access_token)['Username']
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
 
         client.change_password(
             PreviousPassword=old_password,
@@ -564,6 +579,19 @@ def update_password(access_token, old_password, new_password):
         )
 
         return {"message": "Password successfully updated."}
+    except client.exceptions.InvalidPasswordException:
+        return {
+            "error_code": "InvalidPasswordException",
+            "message": "The new password is of invalid format"
+        }
+    except client.exceptions.NotAuthorizedException:
+        return {
+            "error_code": "InvalidPasswordException",
+            "message": (
+                "The provided current password does not match the true "
+                "current password"
+            )
+        }
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -593,7 +621,6 @@ def user_info(access_token):
             "error_code": code,
             "message": message
         }
-
 
 
 def get_user_sub(username):

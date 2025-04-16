@@ -129,6 +129,22 @@ def test_admin_confirm_signup_user_not_found(
     assert ret['message'] == 'The user could not be found.'
 
 
+# Test for error upon using admin confirm signup twice for a user
+def test_admin_confirm_signup_user_already_confirmed(
+    test_cognito,
+    clear_dynamo
+):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    ret = admin_confirm_signup('jd101')
+    assert ret['message'] == 'Confirmation successful'
+
+    ret = admin_confirm_signup('jd101')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NoVerificationRequired'
+    assert ret['message'] == 'User has already confirmed their email.'
+
+
 # Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
@@ -147,6 +163,22 @@ def test_confirm_signup(test_cognito, clear_dynamo, monkeypatch):
     ret = confirm_signup('jd101', '123456')
 
     assert ret['message'] == 'Confirmation successful'
+
+
+# Test for error upon using confirm signup on an already confirmed user
+def test_confirm_signup_user_already_confirmed(
+    test_cognito,
+    clear_dynamo
+):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    ret = admin_confirm_signup('jd101')
+    assert ret['message'] == 'Confirmation successful'
+
+    ret = confirm_signup('jd101')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NoVerificationRequired'
+    assert ret['message'] == 'User has already confirmed their email.'
 
 
 # Test for error upon using confirm signup with invalid confirmation code
@@ -295,7 +327,7 @@ def test_forgot_password(test_cognito, clear_dynamo, monkeypatch):
     admin_confirm_signup('jd101')
 
     ret = forgot_password('jd101')
-    
+
     assert ret['message'] == (
         'A confirmation code has been sent to your email to reset your '
         'password'
@@ -323,7 +355,7 @@ def test_forgot_password_with_invalid_user(
     clear_dynamo
 ):
     ret = forgot_password('jd102')
-    
+
     assert 'error_code' in ret
     assert ret['error_code'] == 'UserNotFoundException'
     assert ret['message'] == 'The user could not be found.'
@@ -374,7 +406,7 @@ def test_resend_confirmation_code(test_cognito_with_autoverify, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = resend_confirmation_code('jd101')
-    
+
     assert ret['message'] == (
         'A new confirmation code has been sent to your email'
     )
@@ -385,7 +417,7 @@ def test_resend_confirmation_code_invalid_user(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = resend_confirmation_code('jd102')
-    
+
     assert 'error_code' in ret
     assert ret['error_code'] == 'UserNotFoundException'
     assert ret['message'] == 'The user could not be found.'
@@ -400,7 +432,7 @@ def test_resend_confirmation_code_for_confirmed_user(
     admin_confirm_signup('jd101')
 
     ret = resend_confirmation_code('jd101')
-    
+
     assert 'error_code' in ret
     assert ret['error_code'] == 'NoVerificationRequired'
     assert ret['message'] == 'User has already confirmed their email.'
@@ -494,9 +526,7 @@ def test_update_email_invalid_new_password(test_cognito, clear_dynamo):
 
     assert 'error_code' in ret
     assert ret['error_code'] == 'InvalidPasswordException'
-    assert ret['message'] == (
-        'Invalid password provided.'
-    )
+    assert ret['message'] == 'The new password is of invalid format'
 
 
 # Test for error when password is updated with invalid current password
@@ -512,8 +542,11 @@ def test_update_password_invalid_old_password(test_cognito, clear_dynamo):
     )
 
     assert 'error_code' in ret
-    assert ret['error_code'] == 'NotAuthorizedException'
-    assert ret['message'] == 'You are not authorised to complete this action.'
+    assert ret['error_code'] == 'InvalidPasswordException'
+    assert ret['message'] == (
+        'The provided current password does not match the true current '
+        'password'
+    )
 
 
 # =========================================================================== #

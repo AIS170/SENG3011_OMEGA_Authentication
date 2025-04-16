@@ -192,6 +192,39 @@ def test_admin_confirm_signup_user_not_found(
     assert response.json.get('message') == 'The user could not be found.'
 
 
+# Test for error upon using admin confirm signup twice for a user
+def test_admin_confirm_signup_user_already_confirmed(
+    client,
+    test_cognito,
+    user_data_1,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'User has already confirmed their email.'
+    )
+
+
 # Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
@@ -267,6 +300,39 @@ def test_confirm_signup_invalid_code(
     assert response.status_code == 400
     assert response.json.get('message') == (
         'The provided confirmation code has expired.'
+    )
+
+
+# Test for error upon using confirm signup on an already confirmed user
+def test_confirm_signup_user_already_confirmed(
+    client,
+    test_cognito,
+    user_data_1,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'User has already confirmed their email.'
     )
 
 
@@ -670,7 +736,7 @@ def test_forgot_password(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     assert response.json.get('message') == (
         'A confirmation code has been sent to your email to reset your '
         'password'
@@ -778,7 +844,7 @@ def test_confirm_forgot_password_bad_input(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/forgot_password',
         data=json.dumps({'username': user_data_1['username']}),
@@ -822,7 +888,7 @@ def test_confirm_forgot_password_with_invalid_user(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/forgot_password',
         data=json.dumps({'username': user_data_1['username']}),
@@ -864,7 +930,7 @@ def test_confirm_forgot_password_with_invalid_conf_code(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/forgot_password',
         data=json.dumps({'username': user_data_1['username']}),
@@ -982,7 +1048,7 @@ def test_resend_confirmation_code_for_confirmed_user(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/admin/confirm_signup',
         data=json.dumps({'username': user_data_1['username']}),
@@ -1014,7 +1080,7 @@ def test_update_email(user_data_1, client, test_cognito, clear_dynamo):
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/admin/confirm_signup',
         data=json.dumps({'username': user_data_1['username']}),
@@ -1044,7 +1110,6 @@ def test_update_email(user_data_1, client, test_cognito, clear_dynamo):
     assert response.status_code == 200
     assert response.json.get('message') == 'Email successfully updated.'
 
-    
     response = client.get(
         '/user_info',
         headers={'Authorization': f'Bearer {token}'},
@@ -1070,7 +1135,7 @@ def test_update_email_bad_inputs(
         content_type='application/json'
     )
     assert response.status_code == 200
-    
+
     response = client.post(
         '/admin/confirm_signup',
         data=json.dumps({'username': user_data_1['username']}),
@@ -1299,18 +1364,6 @@ def test_update_password_no_token(
     )
     assert response.status_code == 200
 
-    response = client.post(
-        '/login',
-        data=json.dumps(
-            {
-                'username': user_data_1['username'],
-                'password': user_data_1['password']
-            }
-        ),
-        content_type='application/json'
-    )
-    token = response.get_json().get('access_token')
-
     response = client.put(
         '/update_password',
         headers={'Authorization': ''},
@@ -1406,7 +1459,9 @@ def test_update_email_invalid_new_password(
     )
 
     assert response.status_code == 400
-    assert response.json.get('message') == ('Invalid password provided.')
+    assert response.json.get('message') == (
+        'The new password is of invalid format'
+    )
 
 
 # Test for error when password is updated with invalid current password
@@ -1452,9 +1507,10 @@ def test_update_password_invalid_old_password(
         content_type='application/json'
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 400
     assert response.json.get('message') == (
-        'You are not authorised to complete this action.'
+        'The provided current password does not match the true current '
+        'password'
     )
 
 
