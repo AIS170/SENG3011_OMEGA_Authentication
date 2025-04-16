@@ -1044,6 +1044,18 @@ def test_update_email(user_data_1, client, test_cognito, clear_dynamo):
     assert response.status_code == 200
     assert response.json.get('message') == 'Email successfully updated.'
 
+    
+    response = client.get(
+        '/user_info',
+        headers={'Authorization': f'Bearer {token}'},
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    assert response.json.get('name') == user_data_1['name']
+    assert response.json.get('username') == user_data_1['username']
+    assert response.json.get('email') == 'john.doe101@gmail.com'
+
 
 # Test for error when email is updated with bad input
 def test_update_email_bad_inputs(
@@ -1310,7 +1322,7 @@ def test_update_password_no_token(
     )
 
     assert response.status_code == 401
-    assert response.json.get('message') == ('Access token is invalid.')
+    assert response.json.get('message') == 'Access token is invalid.'
 
 
 # Test for error when password is updated with invalid token
@@ -1437,6 +1449,110 @@ def test_update_password_invalid_old_password(
             'old_password': 'goodPassword1234!',
             'new_password': 'greatPassword123!'
         }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == (
+        'You are not authorised to complete this action.'
+    )
+
+
+# =========================================================================== #
+# USER INFO TESTS                                                             #
+# =========================================================================== #
+
+# Test for successfully retrieving user info
+def test_user_info(user_data_1, client, test_cognito, clear_dynamo):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.get(
+        '/user_info',
+        headers={'Authorization': f'Bearer {token}'},
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    assert response.json.get('message') == 'User info retrieved successfully'
+    assert response.json.get('name') == user_data_1['name']
+    assert response.json.get('username') == user_data_1['username']
+    assert response.json.get('email') == user_data_1['email']
+
+
+# Test for error when retrieving user info with no token
+def test_user_info_no_token(user_data_1, client, test_cognito, clear_dynamo):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.get(
+        '/user_info',
+        headers={'Authorization': ''},
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == 'Access token is invalid.'
+
+
+# Test for error when retrieving user info with invalid token
+def test_user_info_invalid_token(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.get(
+        '/user_info',
+        headers={'Authorization': 'Bearer 12345'},
         content_type='application/json'
     )
 

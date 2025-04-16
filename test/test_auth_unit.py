@@ -10,7 +10,8 @@ from src.auth import (
     confirm_forgot_password,
     resend_confirmation_code,
     update_email,
-    update_password
+    update_password,
+    user_info
 )
 
 
@@ -419,6 +420,13 @@ def test_update_email(test_cognito, clear_dynamo):
 
     assert ret['message'] == ('Email successfully updated.')
 
+    ret = user_info(access_token)
+
+    assert ret['message'] == 'User info retrieved successfully'
+    assert ret['name'] == 'John Doe'
+    assert ret['username'] == 'jd101'
+    assert ret['email'] == 'john.doe101@gmail.com'
+
 
 # Test for error when email is updated with invalid token
 def test_update_email_invalid_token(test_cognito, clear_dynamo):
@@ -502,6 +510,36 @@ def test_update_password_invalid_old_password(test_cognito, clear_dynamo):
         'goodPassword1234!',
         'greatPassword123!'
     )
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NotAuthorizedException'
+    assert ret['message'] == 'You are not authorised to complete this action.'
+
+
+# =========================================================================== #
+# USER INFO TESTS                                                             #
+# =========================================================================== #
+
+# Test for successfully retrieving user info
+def test_user_info(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = user_info(access_token)
+
+    assert ret['message'] == 'User info retrieved successfully'
+    assert ret['name'] == 'John Doe'
+    assert ret['username'] == 'jd101'
+    assert ret['email'] == 'john.doe@gmail.com'
+
+
+# Test for error when retrieving user info with invalid token
+def test_user_info_invalid_token(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+
+    ret = user_info('12345')
 
     assert 'error_code' in ret
     assert ret['error_code'] == 'NotAuthorizedException'
