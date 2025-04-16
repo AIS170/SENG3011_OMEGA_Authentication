@@ -201,7 +201,7 @@ def confirm_signup(username, conf_code):
             headers={'Content-Type': 'application/json'}
         )
 
-        return {"message": "Confirmation successfull"}
+        return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -244,7 +244,7 @@ def admin_confirm_signup(username):
 
         update_item_status(username, "CONFIRMED")
 
-        return {"message": "Confirmation successfull"}
+        return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -407,7 +407,53 @@ def confirm_forgot_password(username, conf_code, new_password):
             Password=new_password
         )
 
-        return {"message": "Password has been reset successfuly"}
+        return {"message": "Password has been reset successfully"}
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def resend_confirmation_code(username):
+    if not username:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username)"
+        }
+
+    try:
+        client = get_cognito()
+
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+        
+        verified_email = False
+        for feature in user_details.get('UserAttributes', []):
+            if feature['Name'] == 'email_verified':
+                email_verified = feature['Value'].lower() == 'true'
+
+        if email_verified and status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        client.resend_confirmation_code(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username
+        )
+
+        return {
+            "message": "A new confirmation code has been sent to your email"
+        }
     except Exception as error:
         code, message = get_error_message(error)
         return {

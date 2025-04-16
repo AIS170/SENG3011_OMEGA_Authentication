@@ -20,7 +20,8 @@ ERROR_CODE_DICT = {
     "UnknownError": 500,
     "BadInput": 400,
     "InvalidCredentials": 401,
-    "InvalidEmail": 400
+    "InvalidEmail": 400,
+    "NoVerificationRequired": 400
 }
 
 
@@ -139,6 +140,19 @@ def confirm_forgot_password():
     new_password = request.json.get('new_password')
 
     ret = auth.confirm_forgot_password(username, conf_code, new_password)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/resend_confirmation_code', methods=['POST'])
+def resend_confirmation_code():
+    username = request.json.get('username')
+
+    ret = auth.resend_confirmation_code(username)
     if 'error_code' in ret:
         error_code = ret['error_code']
         status = ERROR_CODE_DICT.get(error_code, 500)
