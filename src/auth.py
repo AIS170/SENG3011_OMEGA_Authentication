@@ -184,6 +184,19 @@ def confirm_signup(username, conf_code):
         }
 
     try:
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+
+        if status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
 
         client.confirm_sign_up(
@@ -226,6 +239,19 @@ def admin_confirm_signup(username):
         }
 
     try:
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+
+        if status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
         client.admin_confirm_sign_up(
             UserPoolId=POOL_ID,
             Username=username
@@ -302,6 +328,8 @@ def logout(access_token):
     client = get_cognito()
 
     try:
+        client.get_user(AccessToken=access_token)
+
         client.global_sign_out(AccessToken=access_token)
         return {"message": "Logout Successful!"}
     except Exception as error:
@@ -432,13 +460,8 @@ def resend_confirmation_code(username):
         )
 
         status = user_details.get('UserStatus')
-        
-        verified_email = False
-        for feature in user_details.get('UserAttributes', []):
-            if feature['Name'] == 'email_verified':
-                email_verified = feature['Value'].lower() == 'true'
 
-        if email_verified and status == 'CONFIRMED':
+        if status == 'CONFIRMED':
             return {
                 "error_code": "NoVerificationRequired",
                 "message": "User has already confirmed their email."
@@ -460,6 +483,56 @@ def resend_confirmation_code(username):
             "error_code": code,
             "message": message
         }
+
+
+def update_email(access_token, new_email):
+    if not new_email:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (new_email)"
+        }
+    
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
+
+        validate_email(new_email)
+
+        client.update_user_attributes(
+            AccessToken=access_token,
+            UserAttributes=[
+                {
+                    'Name': 'email',
+                    'Value': new_email
+                }
+            ]
+        )
+
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
+        return {"message": "Email successfully updated."}
+    except EmailNotValidError:
+        return {
+            "error_code": "InvalidEmail",
+            "message": "The provided email is in an invalid format"
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
 
 
 def get_user_sub(username):

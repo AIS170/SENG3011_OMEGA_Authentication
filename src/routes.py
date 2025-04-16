@@ -161,5 +161,26 @@ def resend_confirmation_code():
         return jsonify(ret), 200
 
 
+@routes.route('/update_email', methods=['PUT'])
+def update_email():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 400
+    access_token = access_token[7:]
+
+    new_email = request.json.get('new_email')
+
+    ret = auth.update_email(access_token, new_email)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
 def register_routes(app):
     app.register_blueprint(routes)
