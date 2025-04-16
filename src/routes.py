@@ -21,7 +21,8 @@ ERROR_CODE_DICT = {
     "BadInput": 400,
     "InvalidCredentials": 401,
     "InvalidEmail": 400,
-    "NoVerificationRequired": 400
+    "NoVerificationRequired": 400,
+    "InvalidToken": 401
 }
 
 
@@ -81,7 +82,7 @@ def logout():
         return jsonify({
             "error_code": "InvalidToken",
             "message": "Access token is invalid."
-        }), 400
+        }), 401
     access_token = access_token[7:]
 
     ret = auth.logout(access_token)
@@ -168,12 +169,34 @@ def update_email():
         return jsonify({
             "error_code": "InvalidToken",
             "message": "Access token is invalid."
-        }), 400
+        }), 401
     access_token = access_token[7:]
 
     new_email = request.json.get('new_email')
 
     ret = auth.update_email(access_token, new_email)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/update_password', methods=['PUT'])
+def update_password():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 401
+    access_token = access_token[7:]
+
+    old_password = request.json.get('old_password')
+    new_password = request.json.get('new_password')
+
+    ret = auth.update_password(access_token, old_password, new_password)
     if 'error_code' in ret:
         error_code = ret['error_code']
         status = ERROR_CODE_DICT.get(error_code, 500)

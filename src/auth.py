@@ -533,6 +533,43 @@ def update_email(access_token, new_email):
         }
 
 
+def update_password(access_token, old_password, new_password):
+    if not all([old_password, new_password]):
+        return {
+            "error_code": "BadInput",
+            "message": (
+                "All fields must be provided (old_password, new_password)"
+            )
+        }
+
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
+
+        client.change_password(
+            PreviousPassword=old_password,
+            ProposedPassword=new_password,
+            AccessToken=access_token
+        )
+
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
+        return {"message": "Password successfully updated."}
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
 
 
 def get_user_sub(username):
