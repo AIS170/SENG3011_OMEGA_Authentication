@@ -5,8 +5,8 @@ import json
 # SIGN-UP TESTS                                                               #
 # =========================================================================== #
 
-# Test successfull signup with valid inputs
-def test_signup(client, mock_cognito, user_data_1, clear_dynamo):
+# Test successful signup with valid inputs
+def test_signup(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'
@@ -23,7 +23,7 @@ def test_signup(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon signup with missing input fields
-def test_signup_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
+def test_signup_bad_input(client, test_cognito, user_data_1, clear_dynamo):
     data = {
         'email': 'john.doe@gmail.com',
         'password': 'goodPassword123!',
@@ -44,7 +44,7 @@ def test_signup_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
 # Test for error upon signup with an already in use username
 def test_username_in_use(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     user_data_2,
     clear_dynamo
@@ -77,7 +77,7 @@ def test_username_in_use(
 
 
 # Test for error upon signup with a badly formatted password
-def test_bad_password(client, mock_cognito, clear_dynamo):
+def test_bad_password(client, test_cognito, clear_dynamo):
     data = {
         'username': 'jd101',
         'email': 'john.doe@gmail.com',
@@ -100,7 +100,7 @@ def test_bad_password(client, mock_cognito, clear_dynamo):
 
 
 # Test for error upon signup with a badly formatted email
-def test_bad_email(client, mock_cognito, clear_dynamo):
+def test_bad_email(client, test_cognito, clear_dynamo):
     data = {
         'username': 'jd101',
         'email': 'john.doe.example.com',
@@ -126,7 +126,7 @@ def test_bad_email(client, mock_cognito, clear_dynamo):
 # Test for error upon using admin route outside of a testing environment
 def test_admin_confirm_signup_not_allowed(
     client,
-    mock_cognito,
+    test_cognito,
     monkeypatch,
     user_data_1,
     clear_dynamo
@@ -154,7 +154,7 @@ def test_admin_confirm_signup_not_allowed(
 # Test for error upon using admin confirm signup with missing input fields
 def test_admin_confirm_signup_bad_input(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -180,7 +180,7 @@ def test_admin_confirm_signup_bad_input(
 # Test for error upon using admin confirm signup for non existent user
 def test_admin_confirm_signup_user_not_found(
     client,
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     response = client.post(
@@ -192,22 +192,22 @@ def test_admin_confirm_signup_user_not_found(
     assert response.json.get('message') == 'The user could not be found.'
 
 
-# Test for successfull confirm signup with mocked cognito response.
+# Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
 def test_confirm_signup(
     client,
-    mock_cognito,
+    test_cognito,
     monkeypatch,
     user_data_1,
     clear_dynamo
 ):
-    def mock_confirmation(**kwargs):
+    def test_confirmation(**kwargs):
         return {}
     monkeypatch.setattr(
-        mock_cognito['client'],
+        test_cognito['client'],
         'confirm_sign_up',
-        mock_confirmation
+        test_confirmation
     )
 
     response = client.post(
@@ -225,7 +225,7 @@ def test_confirm_signup(
 # Test for error upon using confirm signup with missing input fields
 def test_confirm_signup_bad_input(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -251,7 +251,7 @@ def test_confirm_signup_bad_input(
 # Test for error upon using confirm signup with invalid confirmation code
 def test_confirm_signup_invalid_code(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -274,8 +274,8 @@ def test_confirm_signup_invalid_code(
 # LOGIN TESTS                                                                 #
 # =========================================================================== #
 
-# Test for successfull login with valid input
-def test_login(client, mock_cognito, user_data_1, clear_dynamo):
+# Test for successful login with valid input
+def test_login(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup',
         data=json.dumps(user_data_1),
@@ -304,7 +304,7 @@ def test_login(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon logging in with missing input fields
-def test_login_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
+def test_login_bad_input(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup',
         data=json.dumps(user_data_1),
@@ -331,7 +331,7 @@ def test_login_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon logging in non existant user
-def test_user_not_exist(client, mock_cognito, clear_dynamo):
+def test_user_not_exist(client, test_cognito, clear_dynamo):
     response = client.post(
         '/login',
         data=json.dumps({'username': 'jd101', 'password': 'goodPassword123!'}),
@@ -342,7 +342,7 @@ def test_user_not_exist(client, mock_cognito, clear_dynamo):
 
 
 # Test for error upon logging in with incorrect password
-def test_incorrect_password(client, mock_cognito, user_data_1, clear_dynamo):
+def test_incorrect_password(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup',
         data=json.dumps(user_data_1),
@@ -374,7 +374,7 @@ def test_incorrect_password(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon logging into an unconfirmed account
-def test_user_not_confirmed(client, mock_cognito, user_data_1, clear_dynamo):
+def test_user_not_confirmed(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup',
         data=json.dumps(user_data_1),
@@ -400,8 +400,8 @@ def test_user_not_confirmed(client, mock_cognito, user_data_1, clear_dynamo):
 # LOGOUT TESTS                                                                #
 # =========================================================================== #
 
-# Test successfull logout with valid inputs
-def test_logout(client, mock_cognito, user_data_1, clear_dynamo):
+# Test successful logout with valid inputs
+def test_logout(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'
@@ -437,7 +437,7 @@ def test_logout(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon logout with missing input fields
-def test_logout_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
+def test_logout_bad_input(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'
@@ -473,7 +473,7 @@ def test_logout_bad_input(client, mock_cognito, user_data_1, clear_dynamo):
 
 
 # Test for error upon logging out with invalid token
-def test_logout_invalid_token(client, mock_cognito, clear_dynamo):
+def test_logout_invalid_token(client, test_cognito, clear_dynamo):
     response = client.post(
         '/logout',
         headers={'Authorization': 'Bearer 123'},
@@ -489,8 +489,8 @@ def test_logout_invalid_token(client, mock_cognito, clear_dynamo):
 # DELETE USER TESTS                                                           #
 # =========================================================================== #
 
-# Test successfull user deletion with valid input
-def test_delete_user(client, mock_cognito, user_data_1, clear_dynamo):
+# Test successful user deletion with valid input
+def test_delete_user(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup',
         data=json.dumps(user_data_1),
@@ -534,7 +534,7 @@ def test_delete_user(client, mock_cognito, user_data_1, clear_dynamo):
 # Test for error upon deleting user with missing input fields
 def test_delete_user_bad_input(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -563,7 +563,7 @@ def test_delete_user_bad_input(
 
 
 # Test for error upon deleting non existant user
-def test_delete_non_existing_user(client, mock_cognito, clear_dynamo):
+def test_delete_non_existing_user(client, test_cognito, clear_dynamo):
     response = client.delete(
         '/delete_user',
         data=json.dumps({'username': 'jd101', 'password': 'goodPassword123!'}),
@@ -576,7 +576,7 @@ def test_delete_non_existing_user(client, mock_cognito, clear_dynamo):
 # Test for error upon deleting user with incorrect password
 def test_delete_user_incorrect_password(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -611,7 +611,7 @@ def test_delete_user_incorrect_password(
 # Test for error upon deleting unconfirmed user
 def test_delete_unconfirmed_user(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -645,7 +645,7 @@ def test_delete_unconfirmed_user(
 # code from an email during testing
 def test_forgot_password(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo,
     monkeypatch
@@ -676,16 +676,16 @@ def test_forgot_password(
         'password'
     )
 
-    def mock_confirm_forgot_password(**kwargs):
+    def test_confirm_forgot_password(**kwargs):
         assert kwargs['Username'] == 'jd101'
         assert kwargs['ConfirmationCode'] == '123456'
         assert kwargs['Password'] == 'greatPassword123!'
         return {}
 
     monkeypatch.setattr(
-        mock_cognito['client'],
+        test_cognito['client'],
         'confirm_forgot_password',
-        mock_confirm_forgot_password
+        test_confirm_forgot_password
     )
 
     response = client.post(
@@ -700,14 +700,14 @@ def test_forgot_password(
 
     assert response.status_code == 200
     assert response.json.get('message') == (
-        'Password has been reset successfuly'
+        'Password has been reset successfully'
     )
 
 
 # Test for error on password reset with bad inputs
 def test_forgot_password_bad_input(
     client,
-    mock_cognito,
+    test_cognito,
     user_data_1,
     clear_dynamo
 ):
@@ -741,7 +741,7 @@ def test_forgot_password_bad_input(
 def test_forgot_password_with_invalid_user(
     client,
     user_data_1,
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     response = client.post(
@@ -762,7 +762,7 @@ def test_forgot_password_with_invalid_user(
 def test_confirm_forgot_password_bad_input(
     client,
     user_data_1,
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     response = client.post(
@@ -806,7 +806,7 @@ def test_confirm_forgot_password_bad_input(
 def test_confirm_forgot_password_with_invalid_user(
     client,
     user_data_1,
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     response = client.post(
@@ -848,7 +848,7 @@ def test_confirm_forgot_password_with_invalid_user(
 def test_confirm_forgot_password_with_invalid_conf_code(
     client,
     user_data_1,
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     response = client.post(
@@ -886,3 +886,173 @@ def test_confirm_forgot_password_with_invalid_conf_code(
     assert response.json.get('message') == (
         'The provided confirmation code is incorrect.'
     )
+
+
+# =========================================================================== #
+# RESEND CONFIRMATION CODE TESTS                                              #
+# =========================================================================== #
+
+# Test for successful confirmation code resend
+def test_resend_confirmation_code(
+    client,
+    user_data_1,
+    test_cognito_with_autoverify,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/resend_confirmation_code',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    assert response.json.get('message') == (
+        'A new confirmation code has been sent to your email'
+    )
+
+
+# Test for error when resending confirmation code with bad input
+def test_resend_confirmation_code_bad_input(
+    client,
+    user_data_1,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/resend_confirmation_code',
+        data=json.dumps({'username': None}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'All fields must be provided (username)'
+    )
+
+
+# Test error when resending confirmation code with invalid username
+def test_resend_confirmation_code_invalid_user(
+    client,
+    user_data_1,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    print(response)
+    assert response.status_code == 200
+
+    response = client.post(
+        '/resend_confirmation_code',
+        data=json.dumps({'username': 'jd102'}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 404
+    assert response.json.get('message') == 'The user could not be found.'
+
+
+# Test error when resending confirmation code for an already confirmed and
+# email verified user
+def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
+    client,
+    user_data_1,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/resend_confirmation_code',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'User has already confirmed their email.'
+    )
+
+
+# # Test success when resending confirmation code for an already confirmed but
+# # not email verified user
+# def test_resend_confirmation_code_for_non_email_verified_user(
+#     client,
+#     user_data_1,
+#     test_cognito_with_autoverify,
+#     clear_dynamo
+# ):
+#     response = client.post(
+#         '/signup',
+#         data=json.dumps(user_data_1),
+#         content_type='application/json'
+#     )
+#     assert response.status_code == 200
+    
+#     response = client.post(
+#         '/admin/confirm_signup',
+#         data=json.dumps({'username': user_data_1['username']}),
+#         content_type='application/json'
+#     )
+#     assert response.status_code == 200
+
+#     response = client.post(
+#         '/login',
+#         data=json.dumps(
+#             {
+#                 'username': user_data_1['username'],
+#                 'password': user_data_1['password']
+#             }
+#         ),
+#         content_type='application/json'
+#     )
+#     assert response.status_code == 200
+#     token = response.get_json().get('access_token')
+
+#     response = client.put(
+#         '/update_email',
+#         headers={'Authorization': f'Bearer {token}'},
+#         data=json.dumps({'new_email': 'john.doe101@gmail.com'}),
+#         content_type='application/json'
+#     )
+#     assert response.status_code == 200
+
+#     response = client.post(
+#         '/resend_confirmation_code',
+#         data=json.dumps({'username': user_data_1['username']}),
+#         content_type='application/json'
+#     )
+
+#     assert response.status_code == 200
+#     assert response.json.get('message') == (
+#         'A new confirmation code has been sent to your email'
+#     )

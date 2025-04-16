@@ -7,7 +7,8 @@ from src.auth import (
     delete_user,
     generate_secret_hash,
     forgot_password,
-    confirm_forgot_password
+    confirm_forgot_password,
+    resend_confirmation_code
 )
 
 
@@ -15,8 +16,8 @@ from src.auth import (
 # SIGN-UP TESTS                                                               #
 # =========================================================================== #
 
-# Test successfull signup with valid inputs
-def test_signup(mock_cognito, clear_dynamo):
+# Test successful signup with valid inputs
+def test_signup(test_cognito, clear_dynamo):
     ret = sign_up(
         'jd101',
         'john.doe@gmail.com',
@@ -32,7 +33,7 @@ def test_signup(mock_cognito, clear_dynamo):
 
 
 # Test for error upon signup with an already in use username
-def test_username_in_use(mock_cognito, clear_dynamo):
+def test_username_in_use(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     ret = sign_up(
         'jd101',
@@ -51,7 +52,7 @@ def test_username_in_use(mock_cognito, clear_dynamo):
 
 
 # Test for error upon signup with a badly formatted password
-def test_bad_password(mock_cognito, clear_dynamo):
+def test_bad_password(test_cognito, clear_dynamo):
     ret = sign_up(
         'jd101',
         'john.doe@gmail.com',
@@ -70,7 +71,7 @@ def test_bad_password(mock_cognito, clear_dynamo):
 
 
 # Test for error upon signup with a badly formatted email
-def test_bad_email(mock_cognito, clear_dynamo):
+def test_bad_email(test_cognito, clear_dynamo):
     ret = sign_up(
         'jd101',
         'john.doe.example.com',
@@ -87,19 +88,19 @@ def test_bad_email(mock_cognito, clear_dynamo):
 # CONFIRM SIGN-UP TESTS                                                       #
 # =========================================================================== #
 
-# Test for successfull admin confirm signup with valid inputs
-def test_admin_confirm_signup(mock_cognito, clear_dynamo):
+# Test for successful admin confirm signup with valid inputs
+def test_admin_confirm_signup(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = admin_confirm_signup('jd101')
 
-    assert ret['message'] == 'Confirmation successfull'
+    assert ret['message'] == 'Confirmation successful'
 
 
 # Test for error upon using admin route outside of a testing environment
 def test_admin_confirm_signup_not_allowed(
     clear_dynamo,
-    mock_cognito,
+    test_cognito,
     monkeypatch
 ):
     monkeypatch.setenv('TESTING', 'false')
@@ -115,7 +116,7 @@ def test_admin_confirm_signup_not_allowed(
 
 # Test for error upon using admin confirm signup for non existent user
 def test_admin_confirm_signup_user_not_found(
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     ret = admin_confirm_signup('jd101')
@@ -125,28 +126,28 @@ def test_admin_confirm_signup_user_not_found(
     assert ret['message'] == 'The user could not be found.'
 
 
-# Test for successfull confirm signup with mocked cognito response.
+# Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
-def test_confirm_signup(mock_cognito, clear_dynamo, monkeypatch):
-    def mock_confirmation(**kwargs):
+def test_confirm_signup(test_cognito, clear_dynamo, monkeypatch):
+    def test_confirmation(**kwargs):
         return {}
 
     monkeypatch.setattr(
-        mock_cognito['client'],
+        test_cognito['client'],
         'confirm_sign_up',
-        mock_confirmation
+        test_confirmation
     )
 
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = confirm_signup('jd101', '123456')
 
-    assert ret['message'] == 'Confirmation successfull'
+    assert ret['message'] == 'Confirmation successful'
 
 
 # Test for error upon using confirm signup with invalid confirmation code
-def test_confirm_signup_invalid_code(mock_cognito, user_data_1, clear_dynamo):
+def test_confirm_signup_invalid_code(test_cognito, user_data_1, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = confirm_signup('jd101', '123456')
@@ -158,8 +159,8 @@ def test_confirm_signup_invalid_code(mock_cognito, user_data_1, clear_dynamo):
 # LOGIN TESTS                                                                 #
 # =========================================================================== #
 
-# Test for successfull login with valid input
-def test_login(mock_cognito, clear_dynamo):
+# Test for successful login with valid input
+def test_login(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
@@ -173,7 +174,7 @@ def test_login(mock_cognito, clear_dynamo):
 
 
 # Test for error upon logging in non existant user
-def test_user_not_exist(mock_cognito, clear_dynamo):
+def test_user_not_exist(test_cognito, clear_dynamo):
     ret = login('jd101', 'goodPassword123!')
 
     assert 'error_code' in ret
@@ -182,7 +183,7 @@ def test_user_not_exist(mock_cognito, clear_dynamo):
 
 
 # Test for error upon logging in with incorrect password
-def test_incorrect_password(mock_cognito, clear_dynamo):
+def test_incorrect_password(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
@@ -194,7 +195,7 @@ def test_incorrect_password(mock_cognito, clear_dynamo):
 
 
 # Test for error upon logging into an unconfirmed account
-def test_user_not_confirmed(mock_cognito, clear_dynamo):
+def test_user_not_confirmed(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = login('jd101', 'goodPassword123!')
@@ -208,8 +209,8 @@ def test_user_not_confirmed(mock_cognito, clear_dynamo):
 # LOGOUT TESTS                                                                #
 # =========================================================================== #
 
-# Test successfull logout with valid inputs
-def test_logout(mock_cognito, clear_dynamo):
+# Test successful logout with valid inputs
+def test_logout(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
     access_token = login('jd101', 'goodPassword123!')['access_token']
@@ -220,7 +221,7 @@ def test_logout(mock_cognito, clear_dynamo):
 
 
 # Test for error upon logging out with invalid token
-def test_logout_invalid_token(mock_cognito, clear_dynamo):
+def test_logout_invalid_token(test_cognito, clear_dynamo):
     ret = logout('123')
 
     assert 'error_code' in ret
@@ -232,8 +233,8 @@ def test_logout_invalid_token(mock_cognito, clear_dynamo):
 # DELETE USER TESTS                                                           #
 # =========================================================================== #
 
-# Test successfull user deletion with valid input
-def test_delete_user(mock_cognito, clear_dynamo):
+# Test successful user deletion with valid input
+def test_delete_user(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
@@ -249,7 +250,7 @@ def test_delete_user(mock_cognito, clear_dynamo):
 
 
 # Test for error upon deleting non existant user
-def test_delete_non_existing_user(mock_cognito, clear_dynamo):
+def test_delete_non_existing_user(test_cognito, clear_dynamo):
     ret = delete_user('jd101', 'goodPassword123!')
 
     assert 'error_code' in ret
@@ -258,7 +259,7 @@ def test_delete_non_existing_user(mock_cognito, clear_dynamo):
 
 
 # Test for error upon deleting user with incorrect password
-def test_delete_user_incorrect_password(mock_cognito, clear_dynamo):
+def test_delete_user_incorrect_password(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
@@ -270,7 +271,7 @@ def test_delete_user_incorrect_password(mock_cognito, clear_dynamo):
 
 
 # Test for error upon deleting unconfirmed user
-def test_delete_unconfirmed_user(mock_cognito, clear_dynamo):
+def test_delete_unconfirmed_user(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = delete_user('jd101', 'incorrectPassword123!')
@@ -287,7 +288,7 @@ def test_delete_unconfirmed_user(mock_cognito, clear_dynamo):
 # Test successful password reset
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
-def test_forgot_password(mock_cognito, clear_dynamo, monkeypatch):
+def test_forgot_password(test_cognito, clear_dynamo, monkeypatch):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
@@ -298,25 +299,25 @@ def test_forgot_password(mock_cognito, clear_dynamo, monkeypatch):
         'password'
     )
 
-    def mock_confirm_forgot_password(**kwargs):
+    def test_confirm_forgot_password(**kwargs):
         assert kwargs['Username'] == 'jd101'
         assert kwargs['ConfirmationCode'] == '123456'
         assert kwargs['Password'] == 'greatPassword123!'
         return {}
 
     monkeypatch.setattr(
-        mock_cognito['client'],
+        test_cognito['client'],
         'confirm_forgot_password',
-        mock_confirm_forgot_password
+        test_confirm_forgot_password
     )
 
     ret = confirm_forgot_password('jd101', '123456', 'greatPassword123!')
-    assert ret['message'] == 'Password has been reset successfuly'
+    assert ret['message'] == 'Password has been reset successfully'
 
 
 # Test for error on password reset with invalid username
 def test_forgot_password_with_invalid_user(
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     ret = forgot_password('jd102')
@@ -332,7 +333,7 @@ def test_forgot_password_with_invalid_user(
 
 # Test for error on confirm password reset with invalid username
 def test_confirm_forgot_password_with_invalid_user(
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
@@ -348,7 +349,7 @@ def test_confirm_forgot_password_with_invalid_user(
 
 # Test for error on confirm password reset with invalid confirmation code
 def test_confirm_forgot_password_with_invalid_conf_code(
-    mock_cognito,
+    test_cognito,
     clear_dynamo
 ):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
@@ -363,11 +364,71 @@ def test_confirm_forgot_password_with_invalid_conf_code(
 
 
 # =========================================================================== #
+# RESEND CONFIRMATION CODE TESTS                                              #
+# =========================================================================== #
+
+# Test for successful confirmation code resend
+def test_resend_confirmation_code(test_cognito_with_autoverify, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+
+    ret = resend_confirmation_code('jd101')
+    
+    assert ret['message'] == (
+        'A new confirmation code has been sent to your email'
+    )
+
+
+# Test error when resending confirmation code with invalid username
+def test_resend_confirmation_code_invalid_user(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+
+    ret = resend_confirmation_code('jd102')
+    
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'UserNotFoundException'
+    assert ret['message'] == 'The user could not be found.'
+
+
+# Test error when resending confirmation code for an already confirmed and
+# email verified user
+def test_resend_confirmation_code_for_confirmed_and_email_verified_user(
+    test_cognito,
+    clear_dynamo
+):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+
+    ret = resend_confirmation_code('jd101')
+    
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NoVerificationRequired'
+    assert ret['message'] == 'User has already confirmed their email.'
+
+
+# # Test success when resending confirmation code for an already confirmed but
+# # not email verified user
+# def test_resend_confirmation_code_for_non_email_verified_user(
+#     test_cognito,
+#     clear_dynamo
+# ):
+#     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+#     admin_confirm_signup('jd101')
+#     access_token = login('jd101', 'goodPassword123!')['access_token']
+#     update_email(access_token, 'john.doe101@gmail.com')
+
+#     ret = resend_confirmation_code('jd101')
+    
+#     assert ret['message'] == (
+#         'A new confirmation code has been sent to your email'
+#     )
+
+
+# =========================================================================== #
 # HELPER FUNCTION TESTS                                                       #
 # =========================================================================== #
 
-# Test for successfull secret hash generation with mock values
-def test_generate_secret_hash(mock_cognito):
+# Test for successful secret hash generation with mock values
+def test_generate_secret_hash(test_cognito):
     username = 'test_user'
     id = 'test_client_id'
     secret = 'test_client_secret'
