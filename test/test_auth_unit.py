@@ -5,7 +5,9 @@ from src.auth import (
     login,
     logout,
     delete_user,
-    generate_secret_hash
+    generate_secret_hash,
+    forgot_password,
+    confirm_forgot_password
 )
 
 
@@ -276,6 +278,88 @@ def test_delete_unconfirmed_user(mock_cognito, clear_dynamo):
     assert 'error_code' in ret
     assert ret['error_code'] == 'UserNotConfirmedException'
     assert ret['message'] == 'User is not confirmed'
+
+
+# =========================================================================== #
+# FORGOT PASSWORD TESTS                                                       #
+# =========================================================================== #
+
+# Test successful password reset
+# Cognito response is mocked as there is no way to retrieve the confirmation
+# code from an email during testing
+def test_forgot_password(mock_cognito, clear_dynamo, monkeypatch):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+
+    ret = forgot_password('jd101')
+    
+    assert ret['message'] == (
+        'A confirmation code has been sent to your email to reset your '
+        'password'
+    )
+
+    def mock_confirm_forgot_password(**kwargs):
+        assert kwargs['Username'] == 'jd101'
+        assert kwargs['ConfirmationCode'] == '123456'
+        assert kwargs['Password'] == 'greatPassword123!'
+        return {}
+
+    monkeypatch.setattr(
+        mock_cognito['client'],
+        'confirm_forgot_password',
+        mock_confirm_forgot_password
+    )
+
+    ret = confirm_forgot_password('jd101', '123456', 'greatPassword123!')
+    assert ret['message'] == 'Password has been reset successfuly'
+
+
+# Test for error on password reset with invalid username
+def test_forgot_password_with_invalid_user(
+    mock_cognito,
+    clear_dynamo
+):
+    ret = forgot_password('jd102')
+    
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'UserNotFoundException'
+    assert ret['message'] == 'The user could not be found.'
+
+
+# =========================================================================== #
+# CONFIRM FORGOT PASSWORD TESTS                                               #
+# =========================================================================== #
+
+# Test for error on confirm password reset with invalid username
+def test_confirm_forgot_password_with_invalid_user(
+    mock_cognito,
+    clear_dynamo
+):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    forgot_password('jd101')
+
+    ret = confirm_forgot_password('jd102', '1234', 'greatPassword123!')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'UserNotFoundException'
+    assert ret['message'] == 'The user could not be found.'
+
+
+# Test for error on confirm password reset with invalid confirmation code
+def test_confirm_forgot_password_with_invalid_conf_code(
+    mock_cognito,
+    clear_dynamo
+):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    forgot_password('jd101')
+
+    ret = confirm_forgot_password('jd101', '1234', 'greatPassword123!')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'CodeMismatchException'
+    assert ret['message'] == 'The provided confirmation code is incorrect.'
 
 
 # =========================================================================== #

@@ -226,7 +226,6 @@ def test_confirm_signup(
 def test_confirm_signup_bad_input(
     client,
     mock_cognito,
-    monkeypatch,
     user_data_1,
     clear_dynamo
 ):
@@ -635,3 +634,255 @@ def test_delete_unconfirmed_user(
     )
     assert response.status_code == 403
     assert response.json.get('message') == 'User is not confirmed'
+
+
+# =========================================================================== #
+# FORGOT PASSWORD TESTS                                                       #
+# =========================================================================== #
+
+# Test successful password reset
+# Cognito response is mocked as there is no way to retrieve the confirmation
+# code from an email during testing
+def test_forgot_password(
+    client,
+    mock_cognito,
+    user_data_1,
+    clear_dynamo,
+    monkeypatch
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    assert response.json.get('message') == (
+        'A confirmation code has been sent to your email to reset your '
+        'password'
+    )
+
+    def mock_confirm_forgot_password(**kwargs):
+        assert kwargs['Username'] == 'jd101'
+        assert kwargs['ConfirmationCode'] == '123456'
+        assert kwargs['Password'] == 'greatPassword123!'
+        return {}
+
+    monkeypatch.setattr(
+        mock_cognito['client'],
+        'confirm_forgot_password',
+        mock_confirm_forgot_password
+    )
+
+    response = client.post(
+        '/confirm_forgot_password',
+        data=json.dumps({
+            'username': user_data_1['username'],
+            'conf_code': '123456',
+            'new_password': 'greatPassword123!'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    assert response.json.get('message') == (
+        'Password has been reset successfuly'
+    )
+
+
+# Test for error on password reset with bad inputs
+def test_forgot_password_bad_input(
+    client,
+    mock_cognito,
+    user_data_1,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': None}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'All fields must be provided (username)'
+    )
+
+
+# Test for error on password reset with invalid username
+def test_forgot_password_with_invalid_user(
+    client,
+    user_data_1,
+    mock_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 404
+    assert response.json.get('message') == 'The user could not be found.'
+
+
+# =========================================================================== #
+# CONFIRM FORGOT PASSWORD TESTS                                               #
+# =========================================================================== #
+
+# Test for error on confirm password reset with invalid username
+def test_confirm_forgot_password_bad_input(
+    client,
+    user_data_1,
+    mock_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/confirm_forgot_password',
+        data=json.dumps({
+            'username': None,
+            'conf_code': '123456',
+            'new_password': user_data_1['password']
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'All fields must be provided (username, conf_code, new_password)'
+    )
+
+
+# Test for error on confirm password reset with invalid username
+def test_confirm_forgot_password_with_invalid_user(
+    client,
+    user_data_1,
+    mock_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/confirm_forgot_password',
+        data=json.dumps({
+            'username': 'jd102',
+            'conf_code': '123456',
+            'new_password': user_data_1['password']
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 404
+    assert response.json.get('message') == 'The user could not be found.'
+
+
+# Test for error on confirm password reset with invalid confirmation code
+def test_confirm_forgot_password_with_invalid_conf_code(
+    client,
+    user_data_1,
+    mock_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    
+    response = client.post(
+        '/forgot_password',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/confirm_forgot_password',
+        data=json.dumps({
+            'username': user_data_1['username'],
+            'conf_code': '123456',
+            'new_password': user_data_1['password']
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'The provided confirmation code is incorrect.'
+    )
