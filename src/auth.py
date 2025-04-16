@@ -231,6 +231,17 @@ def admin_confirm_signup(username):
             Username=username
         )
 
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
         update_item_status(username, "CONFIRMED")
 
         return {"message": "Confirmation successfull"}
@@ -335,6 +346,68 @@ def delete_user(username, password):
             "error_code": "InvalidCredentials",
             "message": "The password is incorrect."
         }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def forgot_password(username):
+    if not username:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username)"
+        }
+
+    client = get_cognito()
+
+    try:
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        client.forgot_password(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username
+        )
+
+        return {
+            "message": (
+                "A confirmation code has been sent to your email to reset your"
+                " password"
+            )
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def confirm_forgot_password(username, conf_code, new_password):
+    if not all([username, conf_code, new_password]):
+        return {
+            "error_code": "BadInput",
+            "message": (
+                "All fields must be provided (username, conf_code, "
+                "new_password)"
+            )
+        }
+
+    client = get_cognito()
+
+    try:
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        response = client.confirm_forgot_password(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username,
+            ConfirmationCode=conf_code,
+            Password=new_password
+        )
+
+        return {"message": "Password has been reset successfuly"}
     except Exception as error:
         code, message = get_error_message(error)
         return {

@@ -119,5 +119,33 @@ def admin_confirm_signup():
         return jsonify(ret), 200
 
 
+@routes.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    username = request.json.get('username')
+
+    ret = auth.forgot_password(username)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/confirm_forgot_password', methods=['POST'])
+def confirm_forgot_password():
+    username = request.json.get('username')
+    conf_code = request.json.get('conf_code')
+    new_password = request.json.get('new_password')
+
+    ret = auth.confirm_forgot_password(username, conf_code, new_password)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
 def register_routes(app):
     app.register_blueprint(routes)
