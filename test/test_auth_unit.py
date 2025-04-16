@@ -9,7 +9,8 @@ from src.auth import (
     forgot_password,
     confirm_forgot_password,
     resend_confirmation_code,
-    update_email
+    update_email,
+    update_password
 )
 
 
@@ -442,6 +443,69 @@ def test_update_email_invalid_email(test_cognito, clear_dynamo):
     assert 'error_code' in ret
     assert ret['error_code'] == 'InvalidEmail'
     assert ret['message'] == 'The provided email is in an invalid format'
+
+
+# =========================================================================== #
+# UPDATE PASSWORD TESTS                                                       #
+# =========================================================================== #
+
+# Test for successful password update
+def test_update_password(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = update_password(
+        access_token,
+        'goodPassword123!',
+        'greatPassword123!'
+    )
+
+    assert ret['message'] == 'Password successfully updated.'
+
+
+# Test for error when password is updated with invalid token
+def test_update_password_invalid_token(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+
+    ret = update_password('12345', 'goodPassword123!', 'greatPassword123!')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NotAuthorizedException'
+    assert ret['message'] == 'You are not authorised to complete this action.'
+
+
+# Test for error when password is updated with invalid new password
+def test_update_email_invalid_new_password(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = update_password(access_token, 'goodPassword123!', 'badpassword')
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'InvalidPasswordException'
+    assert ret['message'] == (
+        'Invalid password provided.'
+    )
+
+
+# Test for error when password is updated with invalid current password
+def test_update_password_invalid_old_password(test_cognito, clear_dynamo):
+    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+    admin_confirm_signup('jd101')
+    access_token = login('jd101', 'goodPassword123!')['access_token']
+
+    ret = update_password(
+        access_token,
+        'goodPassword1234!',
+        'greatPassword123!'
+    )
+
+    assert 'error_code' in ret
+    assert ret['error_code'] == 'NotAuthorizedException'
+    assert ret['message'] == 'You are not authorised to complete this action.'
 
 
 # =========================================================================== #

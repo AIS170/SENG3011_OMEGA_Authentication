@@ -1169,3 +1169,278 @@ def test_update_email_invalid_email(
     assert response.json.get('message') == (
         'The provided email is in an invalid format'
     )
+
+
+# =========================================================================== #
+# UPDATE PASSWORD TESTS                                                       #
+# =========================================================================== #
+
+# Test for successful password update
+def test_update_password(user_data_1, client, test_cognito, clear_dynamo):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({
+            'old_password': user_data_1['password'],
+            'new_password': 'greatPassword123!'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    assert response.json.get('message') == 'Password successfully updated.'
+
+
+# Test for error when password is updated with bad inputs
+def test_update_password_bad_input(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({
+            'old_password': user_data_1['password'],
+            'new_password': None
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == (
+        'All fields must be provided (old_password, new_password)'
+    )
+
+
+# Test for error when password is updated with no token
+def test_update_password_no_token(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': ''},
+        data=json.dumps({
+            'old_password': user_data_1['password'],
+            'new_password': 'greatPassword123!'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == ('Access token is invalid.')
+
+
+# Test for error when password is updated with invalid token
+def test_update_password_invalid_token(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': 'Bearer 12345'},
+        data=json.dumps({
+            'old_password': user_data_1['password'],
+            'new_password': 'greatPassword123!'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == (
+        'You are not authorised to complete this action.'
+    )
+
+
+# Test for error when password is updated with invalid new password
+def test_update_email_invalid_new_password(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({
+            'old_password': user_data_1['password'],
+            'new_password': 'badpassword'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 400
+    assert response.json.get('message') == ('Invalid password provided.')
+
+
+# Test for error when password is updated with invalid current password
+def test_update_password_invalid_old_password(
+    user_data_1,
+    client,
+    test_cognito,
+    clear_dynamo
+):
+    response = client.post(
+        '/signup',
+        data=json.dumps(user_data_1),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/admin/confirm_signup',
+        data=json.dumps({'username': user_data_1['username']}),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        '/login',
+        data=json.dumps(
+            {
+                'username': user_data_1['username'],
+                'password': user_data_1['password']
+            }
+        ),
+        content_type='application/json'
+    )
+    token = response.get_json().get('access_token')
+
+    response = client.put(
+        '/update_password',
+        headers={'Authorization': f'Bearer {token}'},
+        data=json.dumps({
+            'old_password': 'goodPassword1234!',
+            'new_password': 'greatPassword123!'
+        }),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 401
+    assert response.json.get('message') == (
+        'You are not authorised to complete this action.'
+    )
