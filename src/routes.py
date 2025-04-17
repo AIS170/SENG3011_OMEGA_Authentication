@@ -20,7 +20,9 @@ ERROR_CODE_DICT = {
     "UnknownError": 500,
     "BadInput": 400,
     "InvalidCredentials": 401,
-    "InvalidEmail": 400
+    "InvalidEmail": 400,
+    "NoVerificationRequired": 400,
+    "InvalidToken": 401
 }
 
 
@@ -80,7 +82,7 @@ def logout():
         return jsonify({
             "error_code": "InvalidToken",
             "message": "Access token is invalid."
-        }), 400
+        }), 401
     access_token = access_token[7:]
 
     ret = auth.logout(access_token)
@@ -111,6 +113,109 @@ def admin_confirm_signup():
     username = request.json.get('username')
 
     ret = auth.admin_confirm_signup(username)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    username = request.json.get('username')
+
+    ret = auth.forgot_password(username)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/confirm_forgot_password', methods=['POST'])
+def confirm_forgot_password():
+    username = request.json.get('username')
+    conf_code = request.json.get('conf_code')
+    new_password = request.json.get('new_password')
+
+    ret = auth.confirm_forgot_password(username, conf_code, new_password)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/resend_confirmation_code', methods=['POST'])
+def resend_confirmation_code():
+    username = request.json.get('username')
+
+    ret = auth.resend_confirmation_code(username)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/update_email', methods=['PUT'])
+def update_email():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 401
+    access_token = access_token[7:]
+
+    new_email = request.json.get('new_email')
+
+    ret = auth.update_email(access_token, new_email)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/update_password', methods=['PUT'])
+def update_password():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 401
+    access_token = access_token[7:]
+
+    old_password = request.json.get('old_password')
+    new_password = request.json.get('new_password')
+
+    ret = auth.update_password(access_token, old_password, new_password)
+    if 'error_code' in ret:
+        error_code = ret['error_code']
+        status = ERROR_CODE_DICT.get(error_code, 500)
+        return jsonify(ret), status
+    else:
+        return jsonify(ret), 200
+
+
+@routes.route('/user_info', methods=['GET'])
+def user_info():
+    access_token = request.headers.get('Authorization')
+    if not access_token or not access_token.startswith('Bearer '):
+        return jsonify({
+            "error_code": "InvalidToken",
+            "message": "Access token is invalid."
+        }), 401
+    access_token = access_token[7:]
+
+    ret = auth.user_info(access_token)
     if 'error_code' in ret:
         error_code = ret['error_code']
         status = ERROR_CODE_DICT.get(error_code, 500)

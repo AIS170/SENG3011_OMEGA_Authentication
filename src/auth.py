@@ -93,7 +93,7 @@ def get_error_message(error):
             ),
             "UserNotConfirmedException": "User is not confirmed",
             "ExpiredCodeException": (
-                "The provided confirmation code has expired."
+                "The provided confirmation code is incorrect."
             ),
             "CodeMismatchException": (
                 "The provided confirmation code is incorrect."
@@ -122,7 +122,7 @@ def sign_up(username, email, password, name):
                 "All fields must be provided (username, email, password, name)"
             )
         }
-    
+
     if not CLIENT_ID or not CLIENT_SECRET:
         return {
             "error_code": "MissingSecrets",
@@ -184,6 +184,19 @@ def confirm_signup(username, conf_code):
         }
 
     try:
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+
+        if status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
 
         client.confirm_sign_up(
@@ -195,13 +208,18 @@ def confirm_signup(username, conf_code):
 
         update_item_status(username, "CONFIRMED")
 
+        url = (
+            "http://retrieval-load-balancer-334368182.ap-southeast-2.elb"
+            ".amazonaws.com/v1/register/"
+        )
+
         requests.post(
-            'http://retrieval-load-balancer-334368182.ap-southeast-2.elb.amazonaws.com/v1/register/',
+            url,
             data=json.dumps({'username': username}),
             headers={'Content-Type': 'application/json'}
         )
 
-        return {"message": "Confirmation successfull"}
+        return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -226,14 +244,38 @@ def admin_confirm_signup(username):
         }
 
     try:
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+
+        if status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
         client.admin_confirm_sign_up(
             UserPoolId=POOL_ID,
             Username=username
         )
 
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
         update_item_status(username, "CONFIRMED")
 
-        return {"message": "Confirmation successfull"}
+        return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
         return {
@@ -291,6 +333,8 @@ def logout(access_token):
     client = get_cognito()
 
     try:
+        client.get_user(AccessToken=access_token)
+
         client.global_sign_out(AccessToken=access_token)
         return {"message": "Logout Successful!"}
     except Exception as error:
@@ -334,6 +378,242 @@ def delete_user(username, password):
         return {
             "error_code": "InvalidCredentials",
             "message": "The password is incorrect."
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def forgot_password(username):
+    if not username:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username)"
+        }
+
+    client = get_cognito()
+
+    try:
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        client.forgot_password(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username
+        )
+
+        return {
+            "message": (
+                "A confirmation code has been sent to your email to reset your"
+                " password"
+            )
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def confirm_forgot_password(username, conf_code, new_password):
+    if not all([username, conf_code, new_password]):
+        return {
+            "error_code": "BadInput",
+            "message": (
+                "All fields must be provided (username, conf_code, "
+                "new_password)"
+            )
+        }
+
+    client = get_cognito()
+
+    try:
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        client.confirm_forgot_password(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username,
+            ConfirmationCode=conf_code,
+            Password=new_password
+        )
+
+        return {"message": "Password has been reset successfully"}
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def resend_confirmation_code(username):
+    if not username:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (username)"
+        }
+
+    try:
+        client = get_cognito()
+
+        user_details = client.admin_get_user(
+            UserPoolId=POOL_ID,
+            Username=username
+        )
+
+        status = user_details.get('UserStatus')
+
+        if status == 'CONFIRMED':
+            return {
+                "error_code": "NoVerificationRequired",
+                "message": "User has already confirmed their email."
+            }
+
+        secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
+        client.resend_confirmation_code(
+            ClientId=CLIENT_ID,
+            SecretHash=secret_hash,
+            Username=username
+        )
+
+        return {
+            "message": "A new confirmation code has been sent to your email"
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def update_email(access_token, new_email):
+    if not new_email:
+        return {
+            "error_code": "BadInput",
+            "message": "All fields must be provided (new_email)"
+        }
+
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
+
+        validate_email(new_email)
+
+        client.update_user_attributes(
+            AccessToken=access_token,
+            UserAttributes=[
+                {
+                    'Name': 'email',
+                    'Value': new_email
+                }
+            ]
+        )
+
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
+        return {"message": "Email successfully updated."}
+    except EmailNotValidError:
+        return {
+            "error_code": "InvalidEmail",
+            "message": "The provided email is in an invalid format"
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def update_password(access_token, old_password, new_password):
+    if not all([old_password, new_password]):
+        return {
+            "error_code": "BadInput",
+            "message": (
+                "All fields must be provided (old_password, new_password)"
+            )
+        }
+
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+    try:
+        client = get_cognito()
+        username = client.get_user(AccessToken=access_token)['Username']
+
+        client.change_password(
+            PreviousPassword=old_password,
+            ProposedPassword=new_password,
+            AccessToken=access_token
+        )
+
+        client.admin_update_user_attributes(
+            UserPoolId=POOL_ID,
+            Username=username,
+            UserAttributes=[
+                {
+                    'Name': 'email_verified',
+                    'Value': 'true'
+                }
+            ]
+        )
+
+        return {"message": "Password successfully updated."}
+    except client.exceptions.InvalidPasswordException:
+        return {
+            "error_code": "InvalidPasswordException",
+            "message": "The new password is of invalid format"
+        }
+    except client.exceptions.NotAuthorizedException:
+        return {
+            "error_code": "InvalidPasswordException",
+            "message": (
+                "The provided current password does not match the true "
+                "current password"
+            )
+        }
+    except Exception as error:
+        code, message = get_error_message(error)
+        return {
+            "error_code": code,
+            "message": message
+        }
+
+
+def user_info(access_token):
+    try:
+        client = get_cognito()
+        user_info = client.get_user(AccessToken=access_token)
+
+        properties = {}
+        for attribute in user_info["UserAttributes"]:
+            properties[attribute["Name"]] = attribute["Value"]
+
+        return {
+            "message": "User info retrieved successfully",
+            "name": properties.get("name"),
+            "username": user_info['Username'],
+            "email": properties.get("email")
         }
     except Exception as error:
         code, message = get_error_message(error)
