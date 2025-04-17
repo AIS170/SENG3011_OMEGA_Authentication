@@ -174,7 +174,7 @@ def test_confirm_signup_user_already_confirmed(
     ret = admin_confirm_signup('jd101')
     assert ret['message'] == 'Confirmation successful'
 
-    ret = confirm_signup('jd101')
+    ret = confirm_signup('jd101', '12345')
 
     assert 'error_code' in ret
     assert ret['error_code'] == 'NoVerificationRequired'
@@ -182,12 +182,12 @@ def test_confirm_signup_user_already_confirmed(
 
 
 # Test for error upon using confirm signup with invalid confirmation code
-def test_confirm_signup_invalid_code(test_cognito, user_data_1, clear_dynamo):
+def test_confirm_signup_invalid_code(test_cognito, clear_dynamo):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
 
     ret = confirm_signup('jd101', '123456')
 
-    assert ret['message'] == 'The provided confirmation code has expired.'
+    assert ret['message'] == 'The provided confirmation code is incorrect.'
 
 
 # =========================================================================== #
@@ -326,6 +326,16 @@ def test_forgot_password(test_cognito, clear_dynamo, monkeypatch):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
 
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == 'jd101'
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
+
     ret = forgot_password('jd101')
 
     assert ret['message'] == (
@@ -368,10 +378,22 @@ def test_forgot_password_with_invalid_user(
 # Test for error on confirm password reset with invalid username
 def test_confirm_forgot_password_with_invalid_user(
     test_cognito,
-    clear_dynamo
+    clear_dynamo,
+    monkeypatch
 ):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
+
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == 'jd101'
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
+
     forgot_password('jd101')
 
     ret = confirm_forgot_password('jd102', '1234', 'greatPassword123!')
@@ -384,16 +406,28 @@ def test_confirm_forgot_password_with_invalid_user(
 # Test for error on confirm password reset with invalid confirmation code
 def test_confirm_forgot_password_with_invalid_conf_code(
     test_cognito,
-    clear_dynamo
+    clear_dynamo,
+    monkeypatch
 ):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
     admin_confirm_signup('jd101')
+
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == 'jd101'
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
+
     forgot_password('jd101')
 
     ret = confirm_forgot_password('jd101', '1234', 'greatPassword123!')
 
     assert 'error_code' in ret
-    assert ret['error_code'] == 'CodeMismatchException'
+    assert ret['error_code'] == 'ExpiredCodeException'
     assert ret['message'] == 'The provided confirmation code is incorrect.'
 
 
@@ -402,8 +436,20 @@ def test_confirm_forgot_password_with_invalid_conf_code(
 # =========================================================================== #
 
 # Test for successful confirmation code resend
-def test_resend_confirmation_code(test_cognito_with_autoverify, clear_dynamo):
+def test_resend_confirmation_code(test_cognito, clear_dynamo, monkeypatch):
     sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
+
+    def mock_resend_confirmation_code(**kwargs):
+        assert kwargs['ClientId']
+        assert kwargs['SecretHash']
+        assert kwargs['Username'] == 'jd101'
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'resend_confirmation_code',
+        mock_resend_confirmation_code
+    )
 
     ret = resend_confirmation_code('jd101')
 

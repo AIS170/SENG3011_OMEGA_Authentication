@@ -299,7 +299,7 @@ def test_confirm_signup_invalid_code(
     )
     assert response.status_code == 400
     assert response.json.get('message') == (
-        'The provided confirmation code has expired.'
+        'The provided confirmation code is incorrect.'
     )
 
 
@@ -326,7 +326,10 @@ def test_confirm_signup_user_already_confirmed(
 
     response = client.post(
         '/confirm_signup',
-        data=json.dumps({'username': user_data_1['username']}),
+        data=json.dumps({
+            'username': user_data_1['username'],
+            'conf_code': '12345'
+        }),
         content_type='application/json'
     )
 
@@ -502,8 +505,8 @@ def test_logout(client, test_cognito, user_data_1, clear_dynamo):
     assert response.status_code == 200
 
 
-# Test for error upon logout with missing input fields
-def test_logout_bad_input(client, test_cognito, user_data_1, clear_dynamo):
+# Test for error upon logout with no token
+def test_logout_no_token(client, test_cognito, user_data_1, clear_dynamo):
     response = client.post(
         '/signup', data=json.dumps(user_data_1),
         content_type='application/json'
@@ -531,10 +534,10 @@ def test_logout_bad_input(client, test_cognito, user_data_1, clear_dynamo):
 
     response = client.post(
         '/logout',
-        headers={'Authorization': 'invalid_token'},
+        headers={'Authorization': ''},
         content_type='application/json'
     )
-    assert response.status_code == 400
+    assert response.status_code == 401
     assert response.json.get('message') == 'Access token is invalid.'
 
 
@@ -730,6 +733,16 @@ def test_forgot_password(
     )
     assert response.status_code == 200
 
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == user_data_1['username']
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
+
     response = client.post(
         '/forgot_password',
         data=json.dumps({'username': user_data_1['username']}),
@@ -742,8 +755,8 @@ def test_forgot_password(
         'password'
     )
 
-    def test_confirm_forgot_password(**kwargs):
-        assert kwargs['Username'] == 'jd101'
+    def mock_confirm_forgot_password(**kwargs):
+        assert kwargs['Username'] == user_data_1['username']
         assert kwargs['ConfirmationCode'] == '123456'
         assert kwargs['Password'] == 'greatPassword123!'
         return {}
@@ -751,7 +764,7 @@ def test_forgot_password(
     monkeypatch.setattr(
         test_cognito['client'],
         'confirm_forgot_password',
-        test_confirm_forgot_password
+        mock_confirm_forgot_password
     )
 
     response = client.post(
@@ -829,7 +842,8 @@ def test_confirm_forgot_password_bad_input(
     client,
     user_data_1,
     test_cognito,
-    clear_dynamo
+    clear_dynamo,
+    monkeypatch
 ):
     response = client.post(
         '/signup',
@@ -844,6 +858,16 @@ def test_confirm_forgot_password_bad_input(
         content_type='application/json'
     )
     assert response.status_code == 200
+
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == user_data_1['username']
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
 
     response = client.post(
         '/forgot_password',
@@ -873,7 +897,8 @@ def test_confirm_forgot_password_with_invalid_user(
     client,
     user_data_1,
     test_cognito,
-    clear_dynamo
+    clear_dynamo,
+    monkeypatch
 ):
     response = client.post(
         '/signup',
@@ -888,6 +913,16 @@ def test_confirm_forgot_password_with_invalid_user(
         content_type='application/json'
     )
     assert response.status_code == 200
+
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == user_data_1['username']
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
 
     response = client.post(
         '/forgot_password',
@@ -915,7 +950,8 @@ def test_confirm_forgot_password_with_invalid_conf_code(
     client,
     user_data_1,
     test_cognito,
-    clear_dynamo
+    clear_dynamo,
+    monkeypatch
 ):
     response = client.post(
         '/signup',
@@ -930,6 +966,16 @@ def test_confirm_forgot_password_with_invalid_conf_code(
         content_type='application/json'
     )
     assert response.status_code == 200
+
+    def mock_forgot_password(**kwargs):
+        assert kwargs['Username'] == user_data_1['username']
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'forgot_password',
+        mock_forgot_password
+    )
 
     response = client.post(
         '/forgot_password',
@@ -962,8 +1008,9 @@ def test_confirm_forgot_password_with_invalid_conf_code(
 def test_resend_confirmation_code(
     client,
     user_data_1,
-    test_cognito_with_autoverify,
-    clear_dynamo
+    test_cognito,
+    clear_dynamo,
+    monkeypatch
 ):
     response = client.post(
         '/signup',
@@ -971,6 +1018,18 @@ def test_resend_confirmation_code(
         content_type='application/json'
     )
     assert response.status_code == 200
+
+    def mock_resend_confirmation_code(**kwargs):
+        assert kwargs['ClientId']
+        assert kwargs['SecretHash']
+        assert kwargs['Username'] == 'jd101'
+        return {}
+
+    monkeypatch.setattr(
+        test_cognito['client'],
+        'resend_confirmation_code',
+        mock_resend_confirmation_code
+    )
 
     response = client.post(
         '/resend_confirmation_code',

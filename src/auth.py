@@ -93,7 +93,7 @@ def get_error_message(error):
             ),
             "UserNotConfirmedException": "User is not confirmed",
             "ExpiredCodeException": (
-                "The provided confirmation code has expired."
+                "The provided confirmation code is incorrect."
             ),
             "CodeMismatchException": (
                 "The provided confirmation code is incorrect."
