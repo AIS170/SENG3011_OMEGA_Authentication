@@ -431,6 +431,8 @@ def resend_confirmation_code(username):
         }
 
     try:
+        client = get_cognito()
+
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         client.resend_confirmation_code(
             ClientId=CLIENT_ID,
