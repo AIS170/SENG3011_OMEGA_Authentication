@@ -192,39 +192,6 @@ def test_admin_confirm_signup_user_not_found(
     assert response.json.get('message') == 'The user could not be found.'
 
 
-# Test for error upon using admin confirm signup twice for a user
-def test_admin_confirm_signup_user_already_confirmed(
-    client,
-    test_cognito,
-    user_data_1,
-    clear_dynamo
-):
-    response = client.post(
-        '/signup',
-        data=json.dumps(user_data_1),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/admin/confirm_signup',
-        data=json.dumps({'username': user_data_1['username']}),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/admin/confirm_signup',
-        data=json.dumps({'username': user_data_1['username']}),
-        content_type='application/json'
-    )
-
-    assert response.status_code == 400
-    assert response.json.get('message') == (
-        'User has already confirmed their email.'
-    )
-
-
 # Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
@@ -300,42 +267,6 @@ def test_confirm_signup_invalid_code(
     assert response.status_code == 400
     assert response.json.get('message') == (
         'The provided confirmation code is incorrect.'
-    )
-
-
-# Test for error upon using confirm signup on an already confirmed user
-def test_confirm_signup_user_already_confirmed(
-    client,
-    test_cognito,
-    user_data_1,
-    clear_dynamo
-):
-    response = client.post(
-        '/signup',
-        data=json.dumps(user_data_1),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/admin/confirm_signup',
-        data=json.dumps({'username': user_data_1['username']}),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/confirm_signup',
-        data=json.dumps({
-            'username': user_data_1['username'],
-            'conf_code': '12345'
-        }),
-        content_type='application/json'
-    )
-
-    assert response.status_code == 400
-    assert response.json.get('message') == (
-        'User has already confirmed their email.'
     )
 
 
@@ -1090,40 +1021,9 @@ def test_resend_confirmation_code_invalid_user(
         content_type='application/json'
     )
 
-    assert response.status_code == 404
-    assert response.json.get('message') == 'The user could not be found.'
-
-
-# Test error when resending confirmation code for an already confirmed user
-def test_resend_confirmation_code_for_confirmed_user(
-    client,
-    user_data_1,
-    test_cognito,
-    clear_dynamo
-):
-    response = client.post(
-        '/signup',
-        data=json.dumps(user_data_1),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/admin/confirm_signup',
-        data=json.dumps({'username': user_data_1['username']}),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-
-    response = client.post(
-        '/resend_confirmation_code',
-        data=json.dumps({'username': user_data_1['username']}),
-        content_type='application/json'
-    )
-
-    assert response.status_code == 400
+    assert response.status_code == 401
     assert response.json.get('message') == (
-        'User has already confirmed their email.'
+        'You are not authorised to complete this action.'
     )
 
 

@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import requests
-from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, COGNITO_ROLE_ARN, DYNAMO_ROLE_ARN
+from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, DYNAMO_ROLE_ARN
 from constants import REGION
 import base64
 import hmac
@@ -12,23 +12,7 @@ from email_validator import validate_email, EmailNotValidError
 
 
 def get_cognito():
-    sts_client = boto3.client('sts')
-    assumed_role_object = sts_client.assume_role(
-        RoleArn=COGNITO_ROLE_ARN,
-        RoleSessionName="CognitoRoleSession"
-    )
-
-    credentials = assumed_role_object['Credentials']
-
-    session = boto3.Session(
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken'],
-        region_name=REGION
-    )
-
-    cognito = session.client('cognito-idp', region_name=REGION)
-    return cognito
+    return boto3.client("cognito-idp", region_name=REGION)
 
 
 def get_dynamo():
@@ -200,19 +184,6 @@ def confirm_signup(username, conf_code):
         }
 
     try:
-        user_details = client.admin_get_user(
-            UserPoolId=POOL_ID,
-            Username=username
-        )
-
-        status = user_details.get('UserStatus')
-
-        if status == 'CONFIRMED':
-            return {
-                "error_code": "NoVerificationRequired",
-                "message": "User has already confirmed their email."
-            }
-
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
 
         client.confirm_sign_up(
@@ -260,19 +231,6 @@ def admin_confirm_signup(username):
         }
 
     try:
-        user_details = client.admin_get_user(
-            UserPoolId=POOL_ID,
-            Username=username
-        )
-
-        status = user_details.get('UserStatus')
-
-        if status == 'CONFIRMED':
-            return {
-                "error_code": "NoVerificationRequired",
-                "message": "User has already confirmed their email."
-            }
-
         client.admin_confirm_sign_up(
             UserPoolId=POOL_ID,
             Username=username
@@ -474,19 +432,6 @@ def resend_confirmation_code(username):
 
     try:
         client = get_cognito()
-
-        user_details = client.admin_get_user(
-            UserPoolId=POOL_ID,
-            Username=username
-        )
-
-        status = user_details.get('UserStatus')
-
-        if status == 'CONFIRMED':
-            return {
-                "error_code": "NoVerificationRequired",
-                "message": "User has already confirmed their email."
-            }
 
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         client.resend_confirmation_code(
