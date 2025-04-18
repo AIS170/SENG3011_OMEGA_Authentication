@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import requests
-from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, DYNAMO_ROLE_ARN
+from config import CLIENT_ID, CLIENT_SECRET, DB, POOL_ID, CLIENT_ROLE_ARN
 from constants import REGION
 import base64
 import hmac
@@ -18,7 +18,7 @@ def get_cognito():
 def get_dynamo():
     sts_client = boto3.client('sts')
     assumed_role_object = sts_client.assume_role(
-        RoleArn=DYNAMO_ROLE_ARN,
+        RoleArn=CLIENT_ROLE_ARN,
         RoleSessionName="AssumeRoleSession1"
     )
 
