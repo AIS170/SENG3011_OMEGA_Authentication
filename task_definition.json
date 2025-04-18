@@ -1,5 +1,5 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-2:911167894691:task-definition/AuthTask:9",
+    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-2:911167894691:task-definition/AuthTask:16",
     "containerDefinitions": [
         {
             "name": "authContainer",
@@ -25,20 +25,24 @@
                     "value": "authentication"
                 },
                 {
-                    "name": "COGNITO_CLIENT_ID",
-                    "value": "19lpbh154asnjsg343vp2tf4m9"
-                },
-                {
                     "name": "COGNITO_CLIENT_SECRET",
                     "value": "14dr0iim63oj79db5oic1hhqbe1gt6o5ffr139f0er4p6u9sf80l"
                 },
                 {
-                    "name": "CLIENT_ROLE_ARN",
+                    "name": "ENVIRONMENT",
+                    "value": "production"
+                },
+                {
+                    "name": "COGNITO_ROLE_ARN",
+                    "value": "arn:aws:iam::149536468960:role/CognitoAccessRole"
+                },
+                {
+                    "name": "DYNAMO_ROLE_ARN",
                     "value": "arn:aws:iam::149536468960:role/shareDynamoDB"
                 },
                 {
-                    "name": "ENVIRONMENT",
-                    "value": "production"
+                    "name": "COGNITO_CLIENT_ID",
+                    "value": "19lpbh154asnjsg343vp2tf4m9"
                 }
             ],
             "mountPoints": [],
@@ -62,7 +66,7 @@
     "taskRoleArn": "arn:aws:iam::911167894691:role/DynamoDeployRole",
     "executionRoleArn": "arn:aws:iam::911167894691:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 9,
+    "revision": 16,
     "volumes": [],
     "status": "ACTIVE",
     "requiresAttributes": [
@@ -111,7 +115,7 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "registeredAt": "2025-04-09T08:49:20.802Z",
+    "registeredAt": "2025-04-18T14:29:28.272Z",
     "registeredBy": "arn:aws:iam::911167894691:root",
     "tags": []
 }
