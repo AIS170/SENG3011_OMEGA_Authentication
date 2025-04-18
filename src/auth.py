@@ -9,7 +9,7 @@ import hmac
 import hashlib
 from botocore.exceptions import ClientError
 from email_validator import validate_email, EmailNotValidError
-
+#
 
 def get_cognito():
     return boto3.client("cognito-idp", region_name=REGION)
