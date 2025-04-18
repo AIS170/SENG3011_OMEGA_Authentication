@@ -1,5 +1,5 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-2:911167894691:task-definition/AuthTask:16",
+    "taskDefinitionArn": "arn:aws:ecs:ap-southeast-2:911167894691:task-definition/AuthTask:22",
     "containerDefinitions": [
         {
             "name": "authContainer",
@@ -37,7 +37,7 @@
                     "value": "arn:aws:iam::149536468960:role/CognitoAccessRole"
                 },
                 {
-                    "name": "DYNAMO_ROLE_ARN",
+                    "name": "CLIENT_ROLE_ARN",
                     "value": "arn:aws:iam::149536468960:role/shareDynamoDB"
                 },
                 {
@@ -56,8 +56,7 @@
                     "max-buffer-size": "25m",
                     "awslogs-region": "ap-southeast-2",
                     "awslogs-stream-prefix": "ecs"
-                },
-                "secretOptions": []
+                }
             },
             "systemControls": []
         }
@@ -66,7 +65,7 @@
     "taskRoleArn": "arn:aws:iam::911167894691:role/DynamoDeployRole",
     "executionRoleArn": "arn:aws:iam::911167894691:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 16,
+    "revision": 22,
     "volumes": [],
     "status": "ACTIVE",
     "requiresAttributes": [
@@ -115,7 +114,7 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "registeredAt": "2025-04-18T14:29:28.272Z",
+    "registeredAt": "2025-04-18T18:01:39.256Z",
     "registeredBy": "arn:aws:iam::911167894691:root",
     "tags": []
 }
