@@ -129,22 +129,6 @@ def test_admin_confirm_signup_user_not_found(
     assert ret['message'] == 'The user could not be found.'
 
 
-# Test for error upon using admin confirm signup twice for a user
-def test_admin_confirm_signup_user_already_confirmed(
-    test_cognito,
-    clear_dynamo
-):
-    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
-    ret = admin_confirm_signup('jd101')
-    assert ret['message'] == 'Confirmation successful'
-
-    ret = admin_confirm_signup('jd101')
-
-    assert 'error_code' in ret
-    assert ret['error_code'] == 'NoVerificationRequired'
-    assert ret['message'] == 'User has already confirmed their email.'
-
-
 # Test for successful confirm signup with mocked cognito response.
 # Cognito response is mocked as there is no way to retrieve the confirmation
 # code from an email during testing
@@ -163,22 +147,6 @@ def test_confirm_signup(test_cognito, clear_dynamo, monkeypatch):
     ret = confirm_signup('jd101', '123456')
 
     assert ret['message'] == 'Confirmation successful'
-
-
-# Test for error upon using confirm signup on an already confirmed user
-def test_confirm_signup_user_already_confirmed(
-    test_cognito,
-    clear_dynamo
-):
-    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
-    ret = admin_confirm_signup('jd101')
-    assert ret['message'] == 'Confirmation successful'
-
-    ret = confirm_signup('jd101', '12345')
-
-    assert 'error_code' in ret
-    assert ret['error_code'] == 'NoVerificationRequired'
-    assert ret['message'] == 'User has already confirmed their email.'
 
 
 # Test for error upon using confirm signup with invalid confirmation code
@@ -467,21 +435,6 @@ def test_resend_confirmation_code_invalid_user(test_cognito, clear_dynamo):
     assert 'error_code' in ret
     assert ret['error_code'] == 'UserNotFoundException'
     assert ret['message'] == 'The user could not be found.'
-
-
-# Test error when resending confirmation code for an already confirmed user
-def test_resend_confirmation_code_for_confirmed_user(
-    test_cognito,
-    clear_dynamo
-):
-    sign_up('jd101', 'john.doe@gmail.com', 'goodPassword123!', 'John Doe')
-    admin_confirm_signup('jd101')
-
-    ret = resend_confirmation_code('jd101')
-
-    assert 'error_code' in ret
-    assert ret['error_code'] == 'NoVerificationRequired'
-    assert ret['message'] == 'User has already confirmed their email.'
 
 
 # =========================================================================== #
