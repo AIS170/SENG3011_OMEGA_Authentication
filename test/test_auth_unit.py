@@ -433,8 +433,8 @@ def test_resend_confirmation_code_invalid_user(test_cognito, clear_dynamo):
     ret = resend_confirmation_code('jd102')
 
     assert 'error_code' in ret
-    assert ret['error_code'] == 'UserNotFoundException'
-    assert ret['message'] == 'The user could not be found.'
+    assert ret['error_code'] == 'NotAuthorizedException'
+    assert ret['message'] == 'You are not authorised to complete this action.'
 
 
 # =========================================================================== #

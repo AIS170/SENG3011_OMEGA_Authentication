@@ -1021,8 +1021,10 @@ def test_resend_confirmation_code_invalid_user(
         content_type='application/json'
     )
 
-    assert response.status_code == 404
-    assert response.json.get('message') == 'The user could not be found.'
+    assert response.status_code == 401
+    assert response.json.get('message') == (
+        'You are not authorised to complete this action.'
+    )
 
 
 # =========================================================================== #
