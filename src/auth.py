@@ -195,13 +195,35 @@ def confirm_signup(username, conf_code):
 
         update_item_status(username, "CONFIRMED")
 
-        url = (
+        retrieval_url = (
             "http://retrieval-load-balancer-334368182.ap-southeast-2.elb"
             ".amazonaws.com/v1/register/"
         )
 
+        analysis_url = (
+            "http://analytics-load-balancer-2055996024.ap-southeast-2.elb"
+            ".amazonaws.com/register"
+        )
+
+        collection_url = (
+            "http://collection-load-balancer-314015927.ap-southeast-2.elb."
+            "amazonaws.com/register"
+        )
+
         requests.post(
-            url,
+            retrieval_url,
+            data=json.dumps({'username': username}),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        requests.post(
+            analysis_url,
+            data=json.dumps({'user_name': username}),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        requests.post(
+            collection_url,
             data=json.dumps({'username': username}),
             headers={'Content-Type': 'application/json'}
         )
