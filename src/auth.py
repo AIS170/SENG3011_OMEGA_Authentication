@@ -16,18 +16,17 @@ def get_cognito():
 
 
 def get_dynamo():
-    sts_client = boto3.client('sts')
+    sts_client = boto3.client("sts")
     assumed_role_object = sts_client.assume_role(
-        RoleArn=CLIENT_ROLE_ARN,
-        RoleSessionName="AssumeRoleSession1"
+        RoleArn=CLIENT_ROLE_ARN, RoleSessionName="AssumeRoleSession1"
     )
 
-    credentials = assumed_role_object['Credentials']
-    aws_access_key_id = credentials['AccessKeyId']
-    aws_secret_access_key = credentials['SecretAccessKey']
+    credentials = assumed_role_object["Credentials"]
+    aws_access_key_id = credentials["AccessKeyId"]
+    aws_secret_access_key = credentials["SecretAccessKey"]
 
     session = boto3.Session(
-        aws_session_token=credentials['SessionToken'],
+        aws_session_token=credentials["SessionToken"],
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         region_name=REGION,
@@ -52,10 +51,10 @@ def get_item_from_DB(username):
 
     response = table.scan(
         FilterExpression="username = :username",
-        ExpressionAttributeValues={":username": username}
+        ExpressionAttributeValues={":username": username},
     )
-    if 'Items' in response and len(response['Items']) > 0:
-        return response['Items'][0]
+    if "Items" in response and len(response["Items"]) > 0:
+        return response["Items"][0]
     else:
         return None
 
@@ -67,7 +66,7 @@ def update_item_status(username, status):
         Key={"userID": get_user_sub(username)},
         UpdateExpression="SET #status = :status",
         ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status": status}
+        ExpressionAttributeValues={":status": status},
     )
 
     return response
@@ -76,37 +75,28 @@ def update_item_status(username, status):
 def delete_item_from_DB(username):
     table = get_dynamo()
 
-    response = table.delete_item(
-        Key={'userID': get_user_sub(username)}
-    )
+    response = table.delete_item(Key={"userID": get_user_sub(username)})
 
     return response
 
 
 def get_error_message(error):
     error_messages = {
-            "UsernameExistsException": "The username is already in use.",
-            "InvalidPasswordException": "Invalid password provided.",
-            "UserNotFoundException": "The user could not be found.",
-            "NotAuthorizedException": (
-                "You are not authorised to complete this action."
-            ),
-            "UserNotConfirmedException": "User is not confirmed",
-            "ExpiredCodeException": (
-                "The provided confirmation code is incorrect."
-            ),
-            "CodeMismatchException": (
-                "The provided confirmation code is incorrect."
-            )
-        }
+        "UsernameExistsException": "The username is already in use.",
+        "InvalidPasswordException": "Invalid password provided.",
+        "UserNotFoundException": "The user could not be found.",
+        "NotAuthorizedException": ("You are not authorised to complete this action."),
+        "UserNotConfirmedException": "User is not confirmed",
+        "ExpiredCodeException": ("The provided confirmation code is incorrect."),
+        "CodeMismatchException": ("The provided confirmation code is incorrect."),
+    }
 
     if isinstance(error, ClientError):
         return (
-            error.response['Error']['Code'],
+            error.response["Error"]["Code"],
             error_messages.get(
-                error.response['Error']['Code'],
-                "An unexpected error has occurred"
-            )
+                error.response["Error"]["Code"], "An unexpected error has occurred"
+            ),
         )
     else:
         return "UnknownError", "An unexpected error has occurred"
@@ -120,13 +110,13 @@ def sign_up(username, email, password, name):
             "error_code": "BadInput",
             "message": (
                 "All fields must be provided (username, email, password, name)"
-            )
+            ),
         }
 
     if not CLIENT_ID or not CLIENT_SECRET:
         return {
             "error_code": "MissingSecrets",
-            "message": "CLIENT_ID or CLIENT_SECRET is not set"
+            "message": "CLIENT_ID or CLIENT_SECRET is not set",
         }
 
     try:
@@ -141,37 +131,33 @@ def sign_up(username, email, password, name):
             UserAttributes=[
                 {"Name": "email", "Value": email},
                 {"Name": "name", "Value": name},
-                {"Name": "preferred_username", "Value": username}
+                {"Name": "preferred_username", "Value": username},
             ],
-            SecretHash=secret_hash
+            SecretHash=secret_hash,
         )
         item = {
             "userID": ret["UserSub"],
             "username": username,
             "email": email,
             "name": name,
-            "status": "UNCONFIRMED"
+            "status": "UNCONFIRMED",
         }
         put_item_to_DB(item)
 
         return {
             "message": (
-                "User registered successfully. Please check email "
-                "for confirmation code"
+                "User registered successfully. Please check email for confirmation code"
             ),
-            "user_sub": ret["UserSub"]
+            "user_sub": ret["UserSub"],
         }
     except EmailNotValidError:
         return {
             "error_code": "InvalidEmail",
-            "message": "The provided email is in an invalid format"
+            "message": "The provided email is in an invalid format",
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message + str(error)
-        }
+        return {"error_code": code, "message": message + str(error)}
 
 
 def confirm_signup(username, conf_code):
@@ -180,7 +166,7 @@ def confirm_signup(username, conf_code):
     if not all([username, conf_code]):
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username, conf_code)"
+            "message": "All fields must be provided (username, conf_code)",
         }
 
     try:
@@ -190,7 +176,7 @@ def confirm_signup(username, conf_code):
             ClientId=CLIENT_ID,
             Username=username,
             ConfirmationCode=conf_code,
-            SecretHash=secret_hash
+            SecretHash=secret_hash,
         )
 
         update_item_status(username, "CONFIRMED")
@@ -212,29 +198,26 @@ def confirm_signup(username, conf_code):
 
         requests.post(
             retrieval_url,
-            data=json.dumps({'username': username}),
-            headers={'Content-Type': 'application/json'}
+            data=json.dumps({"username": username}),
+            headers={"Content-Type": "application/json"},
         )
 
         requests.post(
             analysis_url,
-            data=json.dumps({'user_name': username}),
-            headers={'Content-Type': 'application/json'}
+            data=json.dumps({"user_name": username}),
+            headers={"Content-Type": "application/json"},
         )
 
         requests.post(
             collection_url,
-            data=json.dumps({'username': username}),
-            headers={'Content-Type': 'application/json'}
+            data=json.dumps({"username": username}),
+            headers={"Content-Type": "application/json"},
         )
 
         return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def admin_confirm_signup(username):
@@ -243,30 +226,22 @@ def admin_confirm_signup(username):
     if not username:
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username)"
+            "message": "All fields must be provided (username)",
         }
 
-    if os.getenv('TESTING') == 'false':
+    if os.getenv("TESTING") == "false":
         return {
             "error_code": "MethodNotAllowed",
-            "message": "You are not authorised to perform this action."
+            "message": "You are not authorised to perform this action.",
         }
 
     try:
-        client.admin_confirm_sign_up(
-            UserPoolId=POOL_ID,
-            Username=username
-        )
+        client.admin_confirm_sign_up(UserPoolId=POOL_ID, Username=username)
 
         client.admin_update_user_attributes(
             UserPoolId=POOL_ID,
             Username=username,
-            UserAttributes=[
-                {
-                    'Name': 'email_verified',
-                    'Value': 'true'
-                }
-            ]
+            UserAttributes=[{"Name": "email_verified", "Value": "true"}],
         )
 
         update_item_status(username, "CONFIRMED")
@@ -274,10 +249,7 @@ def admin_confirm_signup(username):
         return {"message": "Confirmation successful"}
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def login(username, password):
@@ -286,19 +258,19 @@ def login(username, password):
     if not all([username, password]):
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username, password)"
+            "message": "All fields must be provided (username, password)",
         }
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         response = client.initiate_auth(
             ClientId=CLIENT_ID,
-            AuthFlow='USER_PASSWORD_AUTH',
+            AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
-                'USERNAME': username,
-                'PASSWORD': password,
-                'SECRET_HASH': secret_hash
-            }
+                "USERNAME": username,
+                "PASSWORD": password,
+                "SECRET_HASH": secret_hash,
+            },
         )
 
         id_token = response["AuthenticationResult"]["IdToken"]
@@ -309,19 +281,16 @@ def login(username, password):
             "message": "Login Successful",
             "id_token": id_token,
             "access_token": access_token,
-            "refresh_token": refresh_token
+            "refresh_token": refresh_token,
         }
     except client.exceptions.NotAuthorizedException:
         return {
             "error_code": "InvalidCredentials",
-            "message": "The username or password is incorrect."
+            "message": "The username or password is incorrect.",
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 # logout
@@ -335,10 +304,7 @@ def logout(access_token):
         return {"message": "Logout Successful!"}
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def delete_user(username, password):
@@ -347,25 +313,22 @@ def delete_user(username, password):
     if not all([username, password]):
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username, password)"
+            "message": "All fields must be provided (username, password)",
         }
 
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         client.initiate_auth(
             ClientId=CLIENT_ID,
-            AuthFlow='USER_PASSWORD_AUTH',
+            AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
                 "USERNAME": username,
                 "PASSWORD": password,
-                'SECRET_HASH': secret_hash
-            }
+                "SECRET_HASH": secret_hash,
+            },
         )
 
-        client.admin_delete_user(
-            UserPoolId=POOL_ID,
-            Username=username
-        )
+        client.admin_delete_user(UserPoolId=POOL_ID, Username=username)
 
         delete_item_from_DB(username)
 
@@ -373,21 +336,18 @@ def delete_user(username, password):
     except client.exceptions.NotAuthorizedException:
         return {
             "error_code": "InvalidCredentials",
-            "message": "The password is incorrect."
+            "message": "The password is incorrect.",
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def forgot_password(username):
     if not username:
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username)"
+            "message": "All fields must be provided (username)",
         }
 
     client = get_cognito()
@@ -395,23 +355,17 @@ def forgot_password(username):
     try:
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         client.forgot_password(
-            ClientId=CLIENT_ID,
-            SecretHash=secret_hash,
-            Username=username
+            ClientId=CLIENT_ID, SecretHash=secret_hash, Username=username
         )
 
         return {
             "message": (
-                "A confirmation code has been sent to your email to reset your"
-                " password"
+                "A confirmation code has been sent to your email to reset your password"
             )
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def confirm_forgot_password(username, conf_code, new_password):
@@ -419,9 +373,8 @@ def confirm_forgot_password(username, conf_code, new_password):
         return {
             "error_code": "BadInput",
             "message": (
-                "All fields must be provided (username, conf_code, "
-                "new_password)"
-            )
+                "All fields must be provided (username, conf_code, new_password)"
+            ),
         }
 
     client = get_cognito()
@@ -433,23 +386,20 @@ def confirm_forgot_password(username, conf_code, new_password):
             SecretHash=secret_hash,
             Username=username,
             ConfirmationCode=conf_code,
-            Password=new_password
+            Password=new_password,
         )
 
         return {"message": "Password has been reset successfully"}
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def resend_confirmation_code(username):
     if not username:
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (username)"
+            "message": "All fields must be provided (username)",
         }
 
     try:
@@ -457,130 +407,96 @@ def resend_confirmation_code(username):
 
         secret_hash = generate_secret_hash(username, CLIENT_ID, CLIENT_SECRET)
         client.resend_confirmation_code(
-            ClientId=CLIENT_ID,
-            SecretHash=secret_hash,
-            Username=username
+            ClientId=CLIENT_ID, SecretHash=secret_hash, Username=username
         )
 
-        return {
-            "message": "A new confirmation code has been sent to your email"
-        }
+        return {"message": "A new confirmation code has been sent to your email"}
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def update_email(access_token, new_email):
     if not new_email:
         return {
             "error_code": "BadInput",
-            "message": "All fields must be provided (new_email)"
+            "message": "All fields must be provided (new_email)",
         }
 
     try:
         client = get_cognito()
-        username = client.get_user(AccessToken=access_token)['Username']
+        username = client.get_user(AccessToken=access_token)["Username"]
 
         validate_email(new_email)
 
         client.update_user_attributes(
             AccessToken=access_token,
-            UserAttributes=[
-                {
-                    'Name': 'email',
-                    'Value': new_email
-                }
-            ]
+            UserAttributes=[{"Name": "email", "Value": new_email}],
         )
 
         client.admin_update_user_attributes(
             UserPoolId=POOL_ID,
             Username=username,
-            UserAttributes=[
-                {
-                    'Name': 'email_verified',
-                    'Value': 'true'
-                }
-            ]
+            UserAttributes=[{"Name": "email_verified", "Value": "true"}],
         )
 
         return {"message": "Email successfully updated."}
     except EmailNotValidError:
         return {
             "error_code": "InvalidEmail",
-            "message": "The provided email is in an invalid format"
+            "message": "The provided email is in an invalid format",
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def update_password(access_token, old_password, new_password):
     if not all([old_password, new_password]):
         return {
             "error_code": "BadInput",
-            "message": (
-                "All fields must be provided (old_password, new_password)"
-            )
+            "message": ("All fields must be provided (old_password, new_password)"),
         }
 
     try:
         client = get_cognito()
-        username = client.get_user(AccessToken=access_token)['Username']
+        username = client.get_user(AccessToken=access_token)["Username"]
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
     try:
         client = get_cognito()
-        username = client.get_user(AccessToken=access_token)['Username']
+        username = client.get_user(AccessToken=access_token)["Username"]
 
         client.change_password(
             PreviousPassword=old_password,
             ProposedPassword=new_password,
-            AccessToken=access_token
+            AccessToken=access_token,
         )
 
         client.admin_update_user_attributes(
             UserPoolId=POOL_ID,
             Username=username,
-            UserAttributes=[
-                {
-                    'Name': 'email_verified',
-                    'Value': 'true'
-                }
-            ]
+            UserAttributes=[{"Name": "email_verified", "Value": "true"}],
         )
 
         return {"message": "Password successfully updated."}
     except client.exceptions.InvalidPasswordException:
         return {
             "error_code": "InvalidPasswordException",
-            "message": "The new password is of invalid format"
+            "message": "The new password is of invalid format",
         }
     except client.exceptions.NotAuthorizedException:
         return {
             "error_code": "InvalidPasswordException",
             "message": (
-                "The provided current password does not match the true "
-                "current password"
-            )
+                "The provided current password does not match the true current password"
+            ),
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def user_info(access_token):
@@ -595,29 +511,26 @@ def user_info(access_token):
         return {
             "message": "User info retrieved successfully",
             "name": properties.get("name"),
-            "username": user_info['Username'],
-            "email": properties.get("email")
+            "username": user_info["Username"],
+            "email": properties.get("email"),
         }
     except Exception as error:
         code, message = get_error_message(error)
-        return {
-            "error_code": code,
-            "message": message
-        }
+        return {"error_code": code, "message": message}
 
 
 def get_user_sub(username):
     response = get_item_from_DB(username)
 
     if response:
-        return response.get('userID')
+        return response.get("userID")
     else:
         return None
 
 
 def generate_secret_hash(username, client_id, client_secret):
-    message = bytes(username + client_id, 'utf-8')
-    clientSecret = bytes(client_secret, 'utf-8')
+    message = bytes(username + client_id, "utf-8")
+    clientSecret = bytes(client_secret, "utf-8")
     dig = hmac.new(clientSecret, message, hashlib.sha256)
 
     return base64.b64encode(dig.digest()).decode()
