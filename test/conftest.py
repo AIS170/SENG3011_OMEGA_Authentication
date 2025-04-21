@@ -27,18 +27,18 @@ def test_cognito():
         UserPoolId=pool_id,
         ClientName="testClient",
         GenerateSecret=True,
-        ExplicitAuthFlows=["USER_PASSWORD_AUTH"]
+        ExplicitAuthFlows=["USER_PASSWORD_AUTH"],
     )
 
     client_id = pool_client_response["UserPoolClient"]["ClientId"]
-    client_secret = pool_client_response["UserPoolClient"].get(
-        "ClientSecret"
-    )
+    client_secret = pool_client_response["UserPoolClient"].get("ClientSecret")
 
-    with patch("src.auth.CLIENT_ID", client_id), \
-         patch("src.auth.CLIENT_SECRET", client_secret), \
-         patch("src.auth.POOL_ID", pool_id), \
-         patch("src.auth.get_cognito", return_value=client):
+    with (
+        patch("src.auth.CLIENT_ID", client_id),
+        patch("src.auth.CLIENT_SECRET", client_secret),
+        patch("src.auth.POOL_ID", pool_id),
+        patch("src.auth.get_cognito", return_value=client),
+    ):
         yield {
             "client": client,
             "user_pool_id": pool_id,
@@ -55,25 +55,25 @@ def clear_dynamo():
     table = dynamo_client.Table(DB)
 
     ret = table.scan()
-    for item in ret.get('Items', []):
-        table.delete_item(Key={'userID': item['userID']})
+    for item in ret.get("Items", []):
+        table.delete_item(Key={"userID": item["userID"]})
 
 
 @pytest.fixture
 def user_data_1():
     return {
-        'username': 'jd101',
-        'email': 'john.doe@gmail.com',
-        'password': 'goodPassword123!',
-        'name': 'John Doe'
+        "username": "jd101",
+        "email": "john.doe@gmail.com",
+        "password": "goodPassword123!",
+        "name": "John Doe",
     }
 
 
 @pytest.fixture
 def user_data_2():
     return {
-        'username': 'jd101',
-        'email': 'jane.doe@gmail.com',
-        'password': 'goodPassword123!',
-        'name': 'Jane Doe'
+        "username": "jd101",
+        "email": "jane.doe@gmail.com",
+        "password": "goodPassword123!",
+        "name": "Jane Doe",
     }
