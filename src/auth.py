@@ -209,8 +209,7 @@ def confirm_signup(username, conf_code):
         )
 
         requests.post(
-            collection_url,
-            data=json.dumps({"username": username}),
+            f"{collection_url}?name={username}",
             headers={"Content-Type": "application/json"},
         )
 
